@@ -1,0 +1,77 @@
+{
+  "name": "unifi-pay-widget",
+  "version": "0.1.0",
+  "description": "Framework-agnostic UniFi Pay helpers, React payment widgets, and secure server proxy utilities.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist",
+    "docs",
+    "examples",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md",
+    "CONTRIBUTING.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/types/react/index.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./server": {
+      "types": "./dist/types/server/index.d.ts",
+      "import": "./dist/server.js"
+    },
+    "./styles.css": "./dist/unifi-pay-widget.css"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.types.json",
+    "check": "tsc --noEmit",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "prepare": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhi3700/unifi-pay-widget.git"
+  },
+  "keywords": [
+    "unifi",
+    "payments",
+    "stablecoin",
+    "react",
+    "typescript",
+    "checkout"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,4 +1,6 @@
 import daiIcon from "../assets/dai-icon.svg";
+import selectedNetworkCheckIcon from "../assets/check-circle-fill-blue.svg";
+import selectedAssetCheckIcon from "../assets/check-circle-fill-white.svg";
 import chevronDownIcon from "../assets/chevron-down.svg";
 import ethereumIcon from "../assets/ethereum-icon.svg";
 import polygonIcon from "../assets/polygon-icon.svg";
@@ -6,9 +8,16 @@ import sepoliaIcon from "../assets/sepolia-icon.svg";
 import unifiIcon from "../assets/unifi-icon.svg";
 import usdcIcon from "../assets/usdc-icon.svg";
 import usdtIcon from "../assets/usdt-icon.svg";
+import xLgIcon from "../assets/x-lg.svg";
 import type { UniFiAsset, UniFiNetwork } from "../types";
 
-export { chevronDownIcon, unifiIcon };
+export {
+  chevronDownIcon,
+  selectedAssetCheckIcon,
+  selectedNetworkCheckIcon,
+  unifiIcon,
+  xLgIcon,
+};
 
 export const assetIcons: Record<UniFiAsset, string> = {
   USDT: usdtIcon,

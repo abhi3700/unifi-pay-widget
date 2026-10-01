@@ -5,7 +5,10 @@ import {
   assetIcons,
   chevronDownIcon,
   networkIcons,
+  selectedAssetCheckIcon,
+  selectedNetworkCheckIcon,
   unifiIcon,
+  xLgIcon,
 } from "./assets";
 
 export type UniFiPaymentOptionProps = {
@@ -172,7 +175,7 @@ function PaymentPairSheet({
             aria-label="Close asset and network picker"
             onClick={onClose}
           >
-            ×
+            <img src={xLgIcon} alt="" />
           </button>
         </header>
 
@@ -188,7 +191,13 @@ function PaymentPairSheet({
             >
               <img src={assetIcons[asset]} alt="" />
               <strong>{asset}</strong>
-              {value.asset === asset ? <span aria-hidden="true">✓</span> : null}
+              {value.asset === asset ? (
+                <img
+                  src={selectedAssetCheckIcon}
+                  alt=""
+                  className="unifi-widget__selection-check"
+                />
+              ) : null}
             </button>
           ))}
         </div>
@@ -206,7 +215,13 @@ function PaymentPairSheet({
             >
               <img src={networkIcons[network]} alt="" />
               <strong>{network}</strong>
-              {value.network === network ? <span aria-hidden="true">✓</span> : null}
+              {value.network === network ? (
+                <img
+                  src={selectedNetworkCheckIcon}
+                  alt=""
+                  className="unifi-widget__selection-check"
+                />
+              ) : null}
             </button>
           ))}
         </div>

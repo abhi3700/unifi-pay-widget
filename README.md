@@ -104,8 +104,21 @@ npm install --save 'github:abhi3700/unifi-pay-widget#main'
 
 npm resolves the branch to a commit and records that SHA in `package-lock.json`. A normal build does not automatically fetch a newer `main`. Refresh it explicitly before integration testing:
 
+The package-name-only refresh command below is valid only after the downstream project declares both the GitHub dependency and permission to run the widget's `prepare` script in its `package.json`:
+
+```json
+{
+  "dependencies": {
+    "unifi-pay-widget": "github:abhi3700/unifi-pay-widget#main"
+  },
+  "allowScripts": {
+    "github:abhi3700/unifi-pay-widget": true
+  }
+}
+```
+
 ```sh
-npm install --save --force 'github:abhi3700/unifi-pay-widget#main'
+npm update --save unifi-pay-widget
 ```
 
 Review and commit the resulting lockfile change. Production deployment should then install the tested commit rather than silently resolve another one:

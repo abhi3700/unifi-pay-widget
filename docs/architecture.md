@@ -2,7 +2,7 @@
 
 The library separates public browser behavior from secret-bearing server behavior.
 
-The server proxy uses the library's production UniFi API endpoint by default. Merchants provide only `UNIFI_API_KEY`; UniFi administrators may supply `UNIFI_API_BASE_URL` as a server-side override for local or staging infrastructure.
+The server proxy uses the library's production UniFi API endpoint by default. A production merchant integration configures `UNIFI_API_KEY` as a server secret and `MERCHANT_WALLET_ADDRESS` as the public payment recipient. The proxy reads only the API key; the host application passes the wallet address to the widget. UniFi administrators may supply `UNIFI_API_BASE_URL` as a server-side override for local or staging infrastructure.
 
 | Layer | Import | Responsibility | May read API key? |
 | --- | --- | --- | --- |
@@ -19,7 +19,8 @@ The server proxy uses the library's production UniFi API endpoint by default. Me
 4. The merchant page checks its same-origin proxy with the session ID.
 5. The proxy validates the request, adds the server-held bearer token, and requests the UniFi API.
 6. An empty `data` value remains pending; a non-empty value is the receipt ID.
-7. The merchant fulfills only after its trusted order flow accepts the confirmed receipt.
+7. UniFi retains the session-to-receipt status mapping in Redis for two hours.
+8. The merchant durably stores the order, session ID, and confirmed receipt ID, then fulfills only after its trusted order flow accepts the receipt.
 
 The package intentionally does not proxy arbitrary upstream paths. Expanding the allowlist should be an explicit server-side change with tests.
 

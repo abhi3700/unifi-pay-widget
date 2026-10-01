@@ -1,64 +1,38 @@
 # UniFi Pay Widget
 
-`unifi-pay-widget` is a TypeScript integration kit for adding UniFi stablecoin payments to a web checkout. It includes:
+`unifi-pay-widget` is the primary TypeScript integration kit for adding UniFi stablecoin payments to a web checkout. It includes:
 
 - framework-agnostic payment URL and session helpers;
-- a typed client for payment-status checks;
+- a typed payment-status client;
 - accessible React payment, asset/network picker, status-sheet, and receipt components;
 - a server-only proxy that keeps the UniFi API key out of browser bundles;
 - examples for Cloudflare Pages and other Fetch API-compatible runtimes.
 
-The package ships as ESM with TypeScript declarations. React is optional unless you import `unifi-pay-widget/react`.
+The package ships as ESM with TypeScript declarations. React is optional unless the application imports `unifi-pay-widget/react`.
 
-## Security model
+See [FliQ Market](https://github.com/abhi3700/fliq-market) for a complete example application.
 
-The merchant supplies one required value in the **server environment**, never in client code or a `VITE_*`, `NEXT_PUBLIC_*`, or similar public variable:
+## Quick start
 
-```makefile
-UNIFI_API_KEY=
-```
-
-The library uses `https://api.payunifi.com` by default. `UNIFI_API_BASE_URL` is an optional server-side override for UniFi administrators, local development, staging, or self-hosted API deployments.
-
-The browser calls a same-origin proxy. The proxy allowlists the single status route needed by the widget and adds the API key server-side.
-
-```text
-Browser widget -> merchant /api/unifi -> UniFi API
-                    adds API key          returns status
-
-Browser widget -----------------------> UniFi hosted checkout
-                    opens payment URL
-```
-
-## Install
-
-Until the npm package is published, install directly from GitHub:
+Install the current `main` branch directly from GitHub:
 
 ```sh
-npm install github:abhi3700/unifi-pay-widget#main
+npm install 'github:abhi3700/unifi-pay-widget#main'
 ```
 
-For local development beside this repository:
-
-```sh
-npm install ../unifi-pay-widget
-```
-
-Git dependencies run the package's `prepare` script, so consumers receive the compiled `dist/` output.
-
-## Quick start: complete React widget
-
-Import the component and its stylesheet once in your application:
+Import the component and its stylesheet once:
 
 ```tsx
 import { UniFiPayWidget, UniFiReceiptLink } from "unifi-pay-widget/react";
 import "unifi-pay-widget/styles.css";
 
-export function Checkout() {
+export function Checkout({ merchantWalletAddress }: {
+  merchantWalletAddress: string;
+}) {
   return (
     <UniFiPayWidget
       amount="32.46"
-      recipient="0x000000000000000000000000000000000000dEaD"
+      recipient={merchantWalletAddress}
       onPaid={(receiptId) => {
         console.log("UniFi payment confirmed", receiptId);
       }}
@@ -72,9 +46,89 @@ export function Receipt({ receiptId }: { receiptId: string }) {
 }
 ```
 
-By default, status requests go to `/api/unifi/payment/merchant/session/:sessionId`. Set `proxyBaseUrl` only when your server route uses another prefix.
+By default, status requests go through `/api/unifi/payment/merchant/session/:sessionId` and hosted checkout links use `https://payunifi.com`.
 
-## Add the server proxy
+## Production requirements
+
+Every production merchant integration must configure both values:
+
+```makefile
+UNIFI_API_KEY=
+MERCHANT_WALLET_ADDRESS=
+```
+
+- `UNIFI_API_KEY` is a secret read only by the server proxy.
+- `MERCHANT_WALLET_ADDRESS` is public merchant configuration that the application passes to the widget as `recipient`. The widget does not read application environment variables directly.
+
+The library uses `https://api.payunifi.com` and `https://payunifi.com` by default. `UNIFI_API_BASE_URL` and application-level checkout URL overrides are for UniFi administrators, local development, staging, or self-hosted deployments; merchant production integrations should leave them unset.
+
+```mermaid
+flowchart LR
+    Browser["Browser checkout"] -->|"Same-origin /api/unifi status request"| Proxy["Merchant server proxy"]
+    Secret[("UNIFI_API_KEY<br/>server secret")] -.->|"Added server-side"| Proxy
+    Proxy -->|"Authenticated request"| UniFi["UniFi API"]
+    Browser -->|"Opens payment URL"| Checkout["UniFi hosted checkout"]
+
+    classDef browser fill:#eff6ff,stroke:#2563eb,color:#172554
+    classDef server fill:#f0fdf4,stroke:#16a34a,color:#14532d
+    classDef secret fill:#fff7ed,stroke:#ea580c,color:#7c2d12
+    class Browser browser
+    class Proxy,UniFi,Checkout server
+    class Secret secret
+```
+
+> [!CAUTION]
+> Never expose `UNIFI_API_KEY` through `VITE_*`, `NEXT_PUBLIC_*`, or another client-visible variable. Do not commit environment files containing real credentials.
+
+<details>
+<summary><strong>Merchant onboarding and configuration</strong></summary>
+
+1. Sign up at <https://payunifi.com/app/auth/signup> using email or a Web3 wallet.
+2. Generate an API key using the [UniFi API guide](https://github.com/abhi3700/unifi-dev-kit/blob/main/api-http/README.md).
+3. Store `UNIFI_API_KEY` in the deployment's encrypted secret store.
+4. Store `MERCHANT_WALLET_ADDRESS` as server/application configuration and return it to the browser through a non-secret runtime-config endpoint, or otherwise inject it as public configuration.
+5. Pass that wallet address to `UniFiPayWidget` or `createUniFiPayment` as `recipient`.
+
+Only the API key is consumed by `unifi-pay-widget/server`. `MERCHANT_WALLET_ADDRESS` is the recommended application-level contract because the receiving wallet must be explicit and centrally configured in production.
+
+</details>
+
+<details>
+<summary><strong>GitHub installation, main-branch refresh, and lockfiles</strong></summary>
+
+The package currently tracks `main`:
+
+```sh
+npm install --save 'github:abhi3700/unifi-pay-widget#main'
+```
+
+npm resolves the branch to a commit and records that SHA in `package-lock.json`. A normal build does not automatically fetch a newer `main`. Refresh it explicitly before integration testing:
+
+```sh
+npm install --save --force 'github:abhi3700/unifi-pay-widget#main'
+```
+
+Review and commit the resulting lockfile change. Production deployment should then install the tested commit rather than silently resolve another one:
+
+```sh
+npm ci
+npm run build
+```
+
+For local package development beside this repository:
+
+```sh
+npm install ../unifi-pay-widget
+```
+
+Git dependencies run the package's `prepare` script so consumers receive compiled `dist/` output.
+
+</details>
+
+<details>
+<summary><strong>Add the server proxy</strong></summary>
+
+The browser checks payment status through a same-origin proxy. The proxy allowlists only the status route needed by the widget and adds the API key server-side.
 
 ### Cloudflare Pages
 
@@ -85,16 +139,15 @@ import { createCloudflarePagesFunction } from "unifi-pay-widget/server";
 
 type Env = {
   UNIFI_API_KEY: string;
+  UNIFI_API_BASE_URL?: string;
 };
 
 export const onRequest = createCloudflarePagesFunction<Env>();
 ```
 
-Configure `UNIFI_API_KEY` as an encrypted Cloudflare Pages secret. Most merchants should omit `UNIFI_API_BASE_URL` and use the library default. For local UniFi development, set the optional override in the local server environment and keep that file ignored by Git.
+Configure `UNIFI_API_KEY` as an encrypted Cloudflare Pages secret. Most merchants should omit `UNIFI_API_BASE_URL` and use the built-in production endpoint.
 
 ### Fetch API-compatible server route
-
-The proxy is based on standard `Request` and `Response` objects:
 
 ```ts
 import { handleUniFiProxyRequest } from "unifi-pay-widget/server";
@@ -110,13 +163,14 @@ export function GET(request: Request) {
 }
 ```
 
-If the frontend and proxy use different origins, explicitly set `allowedOrigins`. Same-origin requests work without CORS configuration.
+If the frontend and proxy use different origins, explicitly set `allowedOrigins`. Same-origin requests need no CORS configuration. Set `proxyBaseUrl` only when the application deliberately mounts the proxy at a different prefix.
 
-UniFi administrators can additionally pass `UNIFI_API_BASE_URL` in the server environment to override the built-in production endpoint. Merchant production integrations should leave it unset.
+</details>
 
-## Integrate into an existing checkout
+<details>
+<summary><strong>Integrate into an existing checkout</strong></summary>
 
-Use `UniFiPaymentOption` when the host application already owns its Pay button and success state:
+Use `UniFiPaymentOption` when the host application owns its Pay button and success state:
 
 ```tsx
 import { useState } from "react";
@@ -141,7 +195,7 @@ const [selection, setSelection] = useState<UniFiPaymentSelection>({
 const payment = createUniFiPayment({
   ...selection,
   amount: "32.46",
-  recipient: "0x000000000000000000000000000000000000dEaD",
+  recipient: merchantWalletAddress,
 });
 
 window.open(payment.payUrl, "_blank", "noopener,noreferrer");
@@ -149,9 +203,12 @@ window.open(payment.payUrl, "_blank", "noopener,noreferrer");
 const status = await checkUniFiPaymentStatus(payment.sessionId);
 ```
 
-`UniFiPaymentStatusSheet` can display the generated link and call the host application's status handler. It manages its own loading state unless a `checking` prop is supplied.
+`UniFiPaymentStatusSheet` displays the generated link and calls the host application's status handler. It manages its own loading state unless a `checking` prop is supplied.
 
-## Headless TypeScript usage
+</details>
+
+<details>
+<summary><strong>Headless TypeScript usage</strong></summary>
 
 No React dependency is needed for the root entry point:
 
@@ -166,10 +223,10 @@ const payment = createUniFiPayment({
   asset: "USDC",
   network: "Polygon",
   amount: 25,
-  recipient: "0xabc...",
+  recipient: merchantWalletAddress,
 });
 
-const client = new UniFiClient({ proxyBaseUrl: "/api/unifi" });
+const client = new UniFiClient();
 const result = await client.checkPaymentStatus(payment.sessionId);
 
 if (result.state === "paid") {
@@ -177,20 +234,39 @@ if (result.state === "paid") {
 }
 ```
 
-## Supported payment pairs
+</details>
+
+<details>
+<summary><strong>Payment lifecycle and durable merchant records</strong></summary>
+
+1. The merchant provides amount, recipient, asset, and network.
+2. `createUniFiPayment` generates a cryptographically random 64-character hexadecimal session ID and hosted checkout URL.
+3. The browser opens the UniFi checkout directly.
+4. The merchant page checks `/api/unifi` with the session ID.
+5. The proxy validates the request, adds the server-held API key, and requests the UniFi API.
+6. An empty response remains pending; a non-empty value is the receipt ID.
+
+UniFi stores the `session_id → receipt_id` status mapping in Redis for two hours. This temporary mapping supports checkout polling but is not a durable merchant order record. Persist the order, session ID, and confirmed receipt ID in the merchant database, and fulfill only after trusted server-side confirmation.
+
+Blockchain inclusion and finality are separate from receiving a receipt ID. Apply the confirmation policy appropriate to the selected network before treating irreversible fulfillment as final.
+
+</details>
+
+<details>
+<summary><strong>Supported pairs and API overview</strong></summary>
+
+### Supported payment pairs
 
 - Assets: USDT, USDC, DAI
 - Networks: Ethereum, Polygon, Sepolia
 
-The package does not silently change a user's selected pair. The UniFi checkout remains the final authority on whether a given pair is currently available.
-
-## React API overview
+The package does not silently change a user's selected pair. The hosted checkout remains the final authority on whether a pair is currently available.
 
 ### `UniFiPayWidget`
 
 Required props are `amount` and `recipient`. Useful optional props include:
 
-- `value`, `defaultValue`, `onChange` for controlled or uncontrolled selection;
+- `value`, `defaultValue`, and `onChange` for controlled or uncontrolled selection;
 - `proxyBaseUrl` and `checkoutBaseUrl` for non-default deployments;
 - `onSession`, `onStatus`, `onPaid`, and `onError` lifecycle callbacks;
 - `expirySeconds`, `disabled`, `buttonLabel`, and `openInNewTab`.
@@ -207,11 +283,14 @@ A controlled bottom sheet. Supply `open`, `secondsLeft`, `statusText`, `payUrl`,
 
 Builds a canonical UniFi receipt URL from `receiptId` and renders an external link.
 
-See [API reference](docs/api-reference.md), [architecture](docs/architecture.md), and the [merchant checklist](docs/integration-checklist.md) for more detail.
+See the [API reference](docs/api-reference.md), [architecture](docs/architecture.md), and [merchant checklist](docs/integration-checklist.md) for the complete contracts.
 
-## Customize the theme
+</details>
 
-Override CSS variables near your application root:
+<details>
+<summary><strong>Customize the theme</strong></summary>
+
+Override CSS variables near the application root:
 
 ```css
 .my-checkout {
@@ -224,7 +303,10 @@ Override CSS variables near your application root:
 
 Class names are prefixed with `unifi-widget` to minimize collisions. The UI follows the host application's font.
 
-## Development
+</details>
+
+<details>
+<summary><strong>Library development and future publishing</strong></summary>
 
 ```sh
 npm install
@@ -233,17 +315,17 @@ npm test
 npm pack --dry-run
 ```
 
-Node.js 20 or newer is required for package development and tests.
+Node.js 20 or newer is required for development and tests.
 
-## Publishing later
-
-When the npm organization/package is ready, update the package name if needed, authenticate with npm, and publish from a clean tagged commit:
+When the npm package is ready, authenticate with npm and publish from a clean commit:
 
 ```sh
 npm publish --access public
 ```
 
-Consumers can then replace the GitHub dependency with a normal semver dependency without changing imports.
+Consumers can then replace the GitHub dependency with a normal package dependency without changing imports.
+
+</details>
 
 ## License
 

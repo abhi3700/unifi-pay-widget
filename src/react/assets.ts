@@ -1,4 +1,5 @@
 import daiIcon from "../assets/dai-icon.svg";
+import chevronDownIcon from "../assets/chevron-down.svg";
 import ethereumIcon from "../assets/ethereum-icon.svg";
 import polygonIcon from "../assets/polygon-icon.svg";
 import sepoliaIcon from "../assets/sepolia-icon.svg";
@@ -7,7 +8,7 @@ import usdcIcon from "../assets/usdc-icon.svg";
 import usdtIcon from "../assets/usdt-icon.svg";
 import type { UniFiAsset, UniFiNetwork } from "../types";
 
-export { unifiIcon };
+export { chevronDownIcon, unifiIcon };
 
 export const assetIcons: Record<UniFiAsset, string> = {
   USDT: usdtIcon,

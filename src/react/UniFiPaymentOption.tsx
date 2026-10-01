@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { UNIFI_ASSETS, UNIFI_NETWORKS } from "../constants";
 import type { UniFiPaymentSelection } from "../types";
-import { assetIcons, networkIcons, unifiIcon } from "./assets";
+import {
+  assetIcons,
+  chevronDownIcon,
+  networkIcons,
+  unifiIcon,
+} from "./assets";
 
 export type UniFiPaymentOptionProps = {
   value: UniFiPaymentSelection;
@@ -81,9 +86,12 @@ export function UniFiPaymentOption({
               <strong>{value.asset}</strong>
               <span>{value.network}</span>
             </span>
-            <span aria-hidden="true" className="unifi-widget__chevron">
-              ⌄
-            </span>
+            <img
+              src={chevronDownIcon}
+              alt=""
+              aria-hidden="true"
+              className="unifi-widget__chevron"
+            />
           </button>
         </div>
       </div>

@@ -5,3 +5,6 @@ dist/
 !.env.template
 .DS_Store
 *.tgz
+
+# ai
+design-qa.md

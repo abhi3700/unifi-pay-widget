@@ -12,12 +12,13 @@ The package ships as ESM with TypeScript declarations. React is optional unless 
 
 ## Security model
 
-These variables belong in the merchant's **server environment**, never in client code or a `VITE_*`, `NEXT_PUBLIC_*`, or similar public variable:
+The merchant supplies one required value in the **server environment**, never in client code or a `VITE_*`, `NEXT_PUBLIC_*`, or similar public variable:
 
 ```makefile
-UNIFI_API_BASE_URL=
 UNIFI_API_KEY=
 ```
+
+The library uses `https://api.payunifi.com` by default. `UNIFI_API_BASE_URL` is an optional server-side override for UniFi administrators, local development, staging, or self-hosted API deployments.
 
 The browser calls a same-origin proxy. The proxy allowlists the single status route needed by the widget and adds the API key server-side.
 
@@ -83,14 +84,13 @@ Create `functions/api/unifi/[[path]].ts`:
 import { createCloudflarePagesFunction } from "unifi-pay-widget/server";
 
 type Env = {
-  UNIFI_API_BASE_URL?: string;
-  UNIFI_API_KEY?: string;
+  UNIFI_API_KEY: string;
 };
 
 export const onRequest = createCloudflarePagesFunction<Env>();
 ```
 
-Configure both environment variables in the Cloudflare Pages dashboard. For local Pages development, put them in the local server environment and keep that file ignored by Git.
+Configure `UNIFI_API_KEY` as an encrypted Cloudflare Pages secret. Most merchants should omit `UNIFI_API_BASE_URL` and use the library default. For local UniFi development, set the optional override in the local server environment and keep that file ignored by Git.
 
 ### Fetch API-compatible server route
 
@@ -103,7 +103,6 @@ export function GET(request: Request) {
   return handleUniFiProxyRequest(
     request,
     {
-      UNIFI_API_BASE_URL: process.env.UNIFI_API_BASE_URL,
       UNIFI_API_KEY: process.env.UNIFI_API_KEY,
     },
     { apiPrefix: "/api/unifi" },
@@ -112,6 +111,8 @@ export function GET(request: Request) {
 ```
 
 If the frontend and proxy use different origins, explicitly set `allowedOrigins`. Same-origin requests work without CORS configuration.
+
+UniFi administrators can additionally pass `UNIFI_API_BASE_URL` in the server environment to override the built-in production endpoint. Merchant production integrations should leave it unset.
 
 ## Integrate into an existing checkout
 

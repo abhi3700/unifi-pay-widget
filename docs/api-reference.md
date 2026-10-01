@@ -59,7 +59,7 @@ Requires `receiptId`. Optional props are `checkoutBaseUrl`, `children`, and `cla
 
 ### `handleUniFiProxyRequest(request, env, options?): Promise<Response>`
 
-Reads `UNIFI_API_BASE_URL` and `UNIFI_API_KEY` from `env`. Options:
+Reads the required `UNIFI_API_KEY` from `env`. The optional `UNIFI_API_BASE_URL` overrides the library's production API endpoint for local, staging, or self-hosted deployments. Options:
 
 - `apiPrefix` defaults to `/api/unifi`;
 - `allowedOrigins` allows explicit cross-origin frontends;
@@ -72,6 +72,7 @@ Adapts the handler to the Cloudflare Pages Function `{ request, env }` shape.
 ## Constants
 
 - `UNIFI_CHECKOUT_BASE_URL`: `https://payunifi.com`
+- `UNIFI_API_BASE_URL`: `https://api.payunifi.com`
 - `UNIFI_PROXY_BASE_URL`: `/api/unifi`
 - `UNIFI_PAYMENT_EXPIRY_SECONDS`: `1200`
 - `UNIFI_ASSETS`: supported asset names

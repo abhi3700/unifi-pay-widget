@@ -2,7 +2,7 @@
 
 ## Before development
 
-- Obtain the UniFi API base URL and API key.
+- Obtain a UniFi API key. The library already contains the production API endpoint.
 - Decide which wallet address receives payment.
 - Decide how UniFi sessions map to internal order IDs.
 - Choose a deployment with server or edge-function support.
@@ -10,7 +10,8 @@
 ## Implementation
 
 - Install the library and import the stylesheet once.
-- Add `UNIFI_API_BASE_URL` and `UNIFI_API_KEY` to the server secret store.
+- Add `UNIFI_API_KEY` to the server secret store.
+- Set `UNIFI_API_BASE_URL` only when testing against a local, staging, or self-hosted UniFi API.
 - Mount the allowlisted server proxy.
 - Pass the order amount and recipient to the widget or core helper.
 - Record the session ID against the order before fulfillment.

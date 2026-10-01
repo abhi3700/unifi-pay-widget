@@ -1,14 +1,61 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { UNIFI_API_BASE_URL } from "../dist/index.js";
 import { handleUniFiProxyRequest } from "../dist/server.js";
 
 const sessionId = "d".repeat(64);
 const requestUrl = `https://merchant.example/api/unifi/payment/merchant/session/${sessionId}`;
 
-test("requires both server environment variables", async () => {
-  const response = await handleUniFiProxyRequest(new Request(requestUrl), {});
+test("requires the server-side API key", async () => {
+  const response = await handleUniFiProxyRequest(new Request(requestUrl), {
+    UNIFI_API_BASE_URL: "https://api.example",
+  });
   assert.equal(response.status, 500);
-  assert.match(await response.text(), /UNIFI_API_BASE_URL/);
+  assert.match(await response.text(), /UNIFI_API_KEY/);
+});
+
+test("uses the library API base URL when no override is provided", async () => {
+  let observedUrl = "";
+  const response = await handleUniFiProxyRequest(
+    new Request(requestUrl),
+    { UNIFI_API_KEY: "server-secret" },
+    {
+      fetch: async (input) => {
+        observedUrl = input.toString();
+        return new Response(JSON.stringify({ data: "" }), {
+          headers: { "content-type": "application/json" },
+        });
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(
+    observedUrl,
+    `${UNIFI_API_BASE_URL}/payment/merchant/session/${sessionId}`,
+  );
+});
+
+test("binds the platform fetch implementation to globalThis", async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = function () {
+    assert.equal(this, globalThis);
+    return Promise.resolve(
+      new Response(JSON.stringify({ data: "" }), {
+        headers: { "content-type": "application/json" },
+      }),
+    );
+  };
+
+  try {
+    const response = await handleUniFiProxyRequest(new Request(requestUrl), {
+      UNIFI_API_KEY: "server-secret",
+    });
+    assert.equal(response.status, 200);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("rejects methods and paths outside the allowlist", async () => {

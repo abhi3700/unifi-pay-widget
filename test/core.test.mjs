@@ -101,6 +101,29 @@ test("maps empty and populated API data to pending and paid", async () => {
   });
 });
 
+test("binds the platform fetch implementation to globalThis", async () => {
+  const originalFetch = globalThis.fetch;
+  const sessionId = "e".repeat(64);
+
+  globalThis.fetch = function () {
+    assert.equal(this, globalThis);
+    return Promise.resolve(
+      new Response(JSON.stringify({ data: "" }), {
+        headers: { "content-type": "application/json" },
+      }),
+    );
+  };
+
+  try {
+    const client = new UniFiClient({ proxyBaseUrl: "/api" });
+    assert.deepEqual(await client.checkPaymentStatus(sessionId), {
+      state: "pending",
+    });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("returns a useful failed state for API errors", async () => {
   const client = new UniFiClient({
     fetch: async () =>

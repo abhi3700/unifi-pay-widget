@@ -1,8 +1,9 @@
+import { UNIFI_API_BASE_URL } from "../constants";
 import { isUniFiSessionId } from "../core/session";
 
 export type UniFiServerEnv = {
+  UNIFI_API_KEY: string;
   UNIFI_API_BASE_URL?: string;
-  UNIFI_API_KEY?: string;
 };
 
 export type UniFiProxyOptions = {
@@ -75,7 +76,7 @@ function readStatusSessionId(pathname: string): string | null {
  */
 export async function handleUniFiProxyRequest(
   request: Request,
-  env: UniFiServerEnv,
+  env: Partial<UniFiServerEnv>,
   options: UniFiProxyOptions = {},
 ): Promise<Response> {
   const apiPrefix = normalizePrefix(options.apiPrefix ?? "/api/unifi");
@@ -96,18 +97,15 @@ export async function handleUniFiProxyRequest(
     );
   }
 
-  const apiBaseUrl = env.UNIFI_API_BASE_URL?.trim();
   const apiKey = env.UNIFI_API_KEY?.trim();
-  if (!apiBaseUrl || !apiKey) {
+  if (!apiKey) {
     return jsonResponse(
-      {
-        error:
-          "Server configuration is missing UNIFI_API_BASE_URL or UNIFI_API_KEY.",
-      },
+      { error: "Server configuration is missing UNIFI_API_KEY." },
       500,
       responseCorsHeaders,
     );
   }
+  const apiBaseUrl = env.UNIFI_API_BASE_URL?.trim() || UNIFI_API_BASE_URL;
 
   const requestUrl = new URL(request.url);
   if (
@@ -143,7 +141,7 @@ export async function handleUniFiProxyRequest(
       responseCorsHeaders,
     );
   }
-  const fetchImpl = options.fetch ?? globalThis.fetch;
+  const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
 
   try {
     const upstreamResponse = await fetchImpl(upstreamUrl, {

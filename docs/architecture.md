@@ -2,6 +2,8 @@
 
 The library separates public browser behavior from secret-bearing server behavior.
 
+The server proxy uses the library's production UniFi API endpoint by default. Merchants provide only `UNIFI_API_KEY`; UniFi administrators may supply `UNIFI_API_BASE_URL` as a server-side override for local or staging infrastructure.
+
 | Layer | Import | Responsibility | May read API key? |
 | --- | --- | --- | --- |
 | Core | `unifi-pay-widget` | Sessions, checkout URLs, receipts, status client, shared types | No |

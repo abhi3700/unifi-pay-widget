@@ -33,7 +33,8 @@ export class UniFiClient {
     this.proxyBaseUrl = stripTrailingSlash(
       options.proxyBaseUrl ?? UNIFI_PROXY_BASE_URL,
     );
-    const fetchImpl = options.fetch ?? globalThis.fetch;
+    const fetchImpl =
+      options.fetch ?? globalThis.fetch?.bind(globalThis);
     if (!fetchImpl) {
       throw new UniFiPayError("A Fetch API implementation is required.", {
         code: "FETCH_UNAVAILABLE",

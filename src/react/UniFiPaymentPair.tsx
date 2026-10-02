@@ -18,15 +18,18 @@ export function UniFiPaymentPair({
       className={`unifi-widget__payment-pair ${className}`.trim()}
       aria-label={`${selection.asset} on ${selection.network}`}
     >
-      <span className="unifi-widget__payment-pair-item">
-        <img src={assetIcons[selection.asset]} alt="" aria-hidden="true" />
-        <span>{selection.asset}</span>
-      </span>
-      <span aria-hidden="true">·</span>
-      <span className="unifi-widget__payment-pair-item">
+      <span className="unifi-widget__payment-pair-icons" aria-hidden="true">
+        <img
+          src={assetIcons[selection.asset]}
+          alt=""
+          className="unifi-widget__payment-pair-asset-icon"
+        />
         <span className="unifi-widget__payment-pair-network-icon">
-          <img src={networkIcons[selection.network]} alt="" aria-hidden="true" />
+          <img src={networkIcons[selection.network]} alt="" />
         </span>
+      </span>
+      <span className="unifi-widget__payment-pair-copy">
+        <strong>{selection.asset}</strong>
         <span>{selection.network}</span>
       </span>
     </span>

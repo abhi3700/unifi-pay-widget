@@ -12,6 +12,8 @@ test("renders the canonical asset and network pair", () => {
   );
 
   assert.match(html, /unifi-widget__payment-pair/);
+  assert.match(html, /unifi-widget__payment-pair-icons/);
+  assert.match(html, /unifi-widget__payment-pair-copy/);
   assert.match(html, /USDT/);
   assert.match(html, /Sepolia/);
   assert.match(html, /data:image\/svg\+xml/);

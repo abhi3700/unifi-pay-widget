@@ -1,6 +1,7 @@
 import "./styles.css";
 
 export * from "./UniFiPaymentOption";
+export * from "./UniFiPaymentPair";
 export * from "./UniFiPaymentStatusSheet";
 export * from "./UniFiPayWidget";
 export * from "./UniFiReceiptLink";

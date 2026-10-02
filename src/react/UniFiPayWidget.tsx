@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { UNIFI_PAYMENT_EXPIRY_SECONDS } from "../constants";
 import { UniFiClient } from "../core/client";
+import { getUniFiPaymentRemainingSeconds } from "../core/session";
 import { createUniFiPayment } from "../core/urls";
 import type {
   UniFiPaymentSelection,
@@ -62,18 +63,28 @@ export function UniFiPayWidget({
   const client = useMemo(() => new UniFiClient({ proxyBaseUrl }), [proxyBaseUrl]);
 
   useEffect(() => {
-    if (!statusOpen) return;
-    const expiresAt = Date.now() + expirySeconds * 1000;
-    const timer = window.setInterval(() => {
-      const next = Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000));
+    if (!statusOpen || !session) return;
+
+    const syncRemaining = () => {
+      const next = getUniFiPaymentRemainingSeconds(
+        session.startTimestampSeconds,
+        Date.now(),
+        expirySeconds,
+      );
       setSecondsLeft(next);
       if (next === 0) {
-        window.clearInterval(timer);
         setStatusText("Payment session expired.");
       }
+      return next;
+    };
+
+    if (syncRemaining() === 0) return;
+
+    const timer = window.setInterval(() => {
+      if (syncRemaining() === 0) window.clearInterval(timer);
     }, 250);
     return () => window.clearInterval(timer);
-  }, [expirySeconds, statusOpen]);
+  }, [expirySeconds, session, statusOpen]);
 
   function updateSelection(next: UniFiPaymentSelection) {
     if (value === undefined) setInternalSelection(next);
@@ -89,7 +100,13 @@ export function UniFiPayWidget({
         checkoutBaseUrl,
       });
       setSession(next);
-      setSecondsLeft(expirySeconds);
+      setSecondsLeft(
+        getUniFiPaymentRemainingSeconds(
+          next.startTimestampSeconds,
+          Date.now(),
+          expirySeconds,
+        ),
+      );
       setStatusText("Waiting for payment…");
       setStatusOpen(true);
       onSession?.(next);

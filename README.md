@@ -282,7 +282,8 @@ Required props are `amount` and `recipient`. Useful optional props include:
 - `value`, `defaultValue`, and `onChange` for controlled or uncontrolled selection;
 - `proxyBaseUrl` and `checkoutBaseUrl` for non-default deployments;
 - `onSession`, `onStatus`, `onPaid`, and `onError` lifecycle callbacks;
-- `expirySeconds`, `disabled`, `buttonLabel`, and `openInNewTab`.
+- `expirySeconds` to shorten (but never extend) the hosted session lifetime, plus `disabled`,
+  `buttonLabel`, and `openInNewTab`.
 
 ### `UniFiPaymentOption`
 

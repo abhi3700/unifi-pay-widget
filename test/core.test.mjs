@@ -5,7 +5,9 @@ import {
   createUniFiPayment,
   createUniFiReceiptUrl,
   createUniFiSessionId,
+  getUniFiPaymentRemainingSeconds,
   isUniFiSessionId,
+  UNIFI_PAYMENT_EXPIRY_SECONDS,
 } from "../dist/index.js";
 
 test("creates unique 64-character hexadecimal session IDs", () => {
@@ -32,6 +34,36 @@ test("builds the canonical payment URL", () => {
   assert.equal(
     payment.payUrl,
     `https://checkout.example/app/fliqpay/Polygon/USDC/0xabc/12.30/${sessionId}/1700000000`,
+  );
+});
+
+test("derives the countdown from the payment session timestamp", () => {
+  const start = 1_700_000_000;
+  const expiry = UNIFI_PAYMENT_EXPIRY_SECONDS;
+
+  assert.equal(expiry, 15 * 60);
+  assert.equal(
+    getUniFiPaymentRemainingSeconds(start, start * 1000),
+    expiry,
+  );
+  assert.equal(
+    getUniFiPaymentRemainingSeconds(
+      start,
+      (start + expiry) * 1000 - 1,
+    ),
+    1,
+  );
+  assert.equal(
+    getUniFiPaymentRemainingSeconds(start, (start + expiry) * 1000),
+    0,
+  );
+  assert.equal(
+    getUniFiPaymentRemainingSeconds(start, (start - 1) * 1000),
+    expiry,
+  );
+  assert.equal(
+    getUniFiPaymentRemainingSeconds(start, start * 1000, expiry * 2),
+    expiry,
   );
 });
 

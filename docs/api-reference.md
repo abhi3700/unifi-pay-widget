@@ -74,6 +74,9 @@ Adapts the handler to the Cloudflare Pages Function `{ request, env }` shape.
 - `UNIFI_CHECKOUT_BASE_URL`: `https://payunifi.com`
 - `UNIFI_API_BASE_URL`: `https://api.payunifi.com`
 - `UNIFI_PROXY_BASE_URL`: `/api/unifi`
-- `UNIFI_PAYMENT_EXPIRY_SECONDS`: `1200`
+- `UNIFI_PAYMENT_EXPIRY_SECONDS`: `900`
+- `getUniFiPaymentRemainingSeconds(startTimestampSeconds, nowTimestampMilliseconds?, expirySeconds?)`:
+  derives the countdown from the timestamp embedded in the payment session URL. A custom expiry
+  may shorten the hosted 15-minute lifetime but cannot extend it.
 - `UNIFI_ASSETS`: supported asset names
 - `UNIFI_NETWORKS`: supported network names

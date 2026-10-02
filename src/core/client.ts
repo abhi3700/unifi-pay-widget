@@ -1,10 +1,16 @@
 import { UNIFI_PROXY_BASE_URL } from "../constants";
 import type {
+  UniFiApiReceiptResponse,
   UniFiApiStatusResponse,
   UniFiClientOptions,
   UniFiPaymentStatus,
+  UniFiReceiptStatusResult,
 } from "../types";
 import { UniFiPayError } from "./errors";
+import {
+  assertUniFiReceiptId,
+  isUniFiReceiptStatus,
+} from "./receipt";
 import { assertUniFiSessionId } from "./session";
 
 function stripTrailingSlash(value: string): string {
@@ -81,6 +87,52 @@ export class UniFiClient {
       };
     }
   }
+
+  async checkReceiptStatus(
+    receiptId: string,
+  ): Promise<UniFiReceiptStatusResult> {
+    assertUniFiReceiptId(receiptId);
+    const path = `/payment/onchain/receipt/${encodeURIComponent(receiptId)}`;
+
+    let response: Response;
+    try {
+      response = await this.fetchImpl(`${this.proxyBaseUrl}${path}`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        credentials: "same-origin",
+      });
+    } catch (error) {
+      return {
+        state: "failed",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Network error while checking receipt status.",
+      };
+    }
+
+    if (!response.ok) {
+      return { state: "failed", message: await readError(response) };
+    }
+
+    try {
+      const body = (await response.json()) as UniFiApiReceiptResponse;
+      const receipt = body.data;
+      if (
+        !receipt ||
+        receipt.id !== receiptId ||
+        !isUniFiReceiptStatus(receipt.status)
+      ) {
+        throw new Error("Invalid receipt response.");
+      }
+      return { state: "received", receipt };
+    } catch {
+      return {
+        state: "failed",
+        message: "UniFi returned an invalid receipt response.",
+      };
+    }
+  }
 }
 
 export async function checkUniFiPaymentStatus(
@@ -88,4 +140,11 @@ export async function checkUniFiPaymentStatus(
   options?: UniFiClientOptions,
 ): Promise<UniFiPaymentStatus> {
   return new UniFiClient(options).checkPaymentStatus(sessionId);
+}
+
+export async function checkUniFiReceiptStatus(
+  receiptId: string,
+  options?: UniFiClientOptions,
+): Promise<UniFiReceiptStatusResult> {
+  return new UniFiClient(options).checkReceiptStatus(receiptId);
 }

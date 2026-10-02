@@ -34,7 +34,7 @@ export function Checkout({ merchantWalletAddress }: {
       amount="32.46"
       recipient={merchantWalletAddress}
       onPaid={(receiptId) => {
-        console.log("UniFi payment confirmed", receiptId);
+        console.log("UniFi receipt detected", receiptId);
       }}
       onError={(error) => console.error(error)}
     />
@@ -63,16 +63,21 @@ MERCHANT_WALLET_ADDRESS=
 The library uses `https://api.payunifi.com` and `https://payunifi.com` by default. `UNIFI_API_BASE_URL` and application-level checkout URL overrides are for UniFi administrators, local development, staging, or self-hosted deployments; merchant production integrations should leave them unset.
 
 ```mermaid
-flowchart LR
-    Browser["Browser checkout"] -->|"Same-origin /api/unifi status request"| Proxy["Merchant server proxy"]
+flowchart TD
+    Browser["Merchant checkout"] -->|"Create session and open payment URL"| Checkout["UniFi hosted checkout"]
+    Browser -->|"1. Look up session"| Proxy["Merchant server proxy"]
     Secret[("UNIFI_API_KEY<br/>server secret")] -.->|"Added server-side"| Proxy
-    Proxy -->|"Authenticated request"| UniFi["UniFi API"]
-    Browser -->|"Opens payment URL"| Checkout["UniFi hosted checkout"]
+    Proxy -->|"GET /payment/merchant/session/:sessionId"| UniFi["UniFi API"]
+    UniFi -->|"Receipt ID detected"| Browser
+    Browser -->|"2. Check now, then every 15 min or manually"| Proxy
+    Proxy -->|"GET /payment/onchain/receipt/:receiptId"| UniFi
+    UniFi -->|"Processing · Confirmed · Finalized<br/>or Failed · Reorged"| Browser
+    Browser -->|"Finalized only"| Order["Confirm order"]
 
     classDef browser fill:#eff6ff,stroke:#2563eb,color:#172554
     classDef server fill:#f0fdf4,stroke:#16a34a,color:#14532d
     classDef secret fill:#fff7ed,stroke:#ea580c,color:#7c2d12
-    class Browser browser
+    class Browser,Order browser
     class Proxy,UniFi,Checkout server
     class Secret secret
 ```
@@ -141,7 +146,8 @@ Git dependencies run the package's `prepare` script so consumers receive compile
 <details>
 <summary><strong>Add the server proxy</strong></summary>
 
-The browser checks payment status through a same-origin proxy. The proxy allowlists only the status route needed by the widget and adds the API key server-side.
+The browser checks session and receipt status through a same-origin proxy. The proxy allowlists only
+those two read routes and adds the API key server-side.
 
 ### Cloudflare Pages
 
@@ -193,6 +199,7 @@ import {
 } from "unifi-pay-widget/react";
 import {
   checkUniFiPaymentStatus,
+  checkUniFiReceiptStatus,
   createUniFiPayment,
   type UniFiPaymentSelection,
 } from "unifi-pay-widget";
@@ -214,6 +221,13 @@ const payment = createUniFiPayment({
 window.open(payment.payUrl, "_blank", "noopener,noreferrer");
 
 const status = await checkUniFiPaymentStatus(payment.sessionId);
+
+if (status.state === "paid") {
+  const receipt = await checkUniFiReceiptStatus(status.receiptId);
+  if (receipt.state === "received" && receipt.receipt.status === "Finalized") {
+    // The merchant may now confirm the order idempotently.
+  }
+}
 ```
 
 `UniFiPaymentStatusSheet` displays the generated link and calls the host application's status handler. It manages its own loading state unless a `checking` prop is supplied.
@@ -243,7 +257,10 @@ const client = new UniFiClient();
 const result = await client.checkPaymentStatus(payment.sessionId);
 
 if (result.state === "paid") {
-  console.log(createUniFiReceiptUrl(result.receiptId));
+  const receipt = await client.checkReceiptStatus(result.receiptId);
+  if (receipt.state === "received") {
+    console.log(receipt.receipt.status, createUniFiReceiptUrl(result.receiptId));
+  }
 }
 ```
 
@@ -258,10 +275,20 @@ if (result.state === "paid") {
 4. The merchant page checks `/api/unifi` with the session ID.
 5. The proxy validates the request, adds the server-held API key, and requests the UniFi API.
 6. An empty response remains pending; a non-empty value is the receipt ID.
+7. The merchant immediately checks the receipt, then refreshes non-terminal receipt states no more
+   than every 15 minutes unless the customer explicitly requests a manual refresh.
+8. `Processing` and `Confirmed` remain in progress. Only `Finalized` confirms settlement;
+   `Failed` and `Reorged` are unsuccessful terminal outcomes.
 
-UniFi stores the `session_id → receipt_id` status mapping in Redis for two hours. This temporary mapping supports checkout polling but is not a durable merchant order record. Persist the order, session ID, and confirmed receipt ID in the merchant database, and fulfill only after trusted server-side confirmation.
+UniFi stores the `session_id → receipt_id` status mapping in Redis for two hours. This temporary
+mapping supports checkout polling but is not a durable merchant order record. Persist the order,
+session ID, detected receipt ID, and finality state in the merchant database, and fulfill only after
+trusted server-side confirmation of `Finalized`.
 
-Blockchain inclusion and finality are separate from receiving a receipt ID. Apply the confirmation policy appropriate to the selected network before treating irreversible fulfillment as final.
+Blockchain inclusion and finality are separate from receiving a receipt ID. The historical
+`paid`/`onPaid` names mean that a receipt was detected, not that it is finalized. Apply the
+confirmation policy appropriate to the selected network before treating irreversible fulfillment
+as final.
 
 </details>
 
@@ -296,6 +323,13 @@ A controlled bottom sheet. Supply `open`, `secondsLeft`, `statusText`, `payUrl`,
 ### `UniFiReceiptLink`
 
 Builds a canonical UniFi receipt URL from `receiptId` and renders an external link.
+
+### Receipt finality
+
+`UniFiClient.checkReceiptStatus(receiptId)` and the one-shot `checkUniFiReceiptStatus` helper return
+the current receipt plus its `Processing`, `Confirmed`, `Finalized`, `Failed`, or `Reorged` status.
+Use an immediate first check, a 15-minute automatic cadence for non-terminal states, and a manual
+refresh control. Do not confirm an order from the session lookup alone.
 
 See the [API reference](docs/api-reference.md), [architecture](docs/architecture.md), and [merchant checklist](docs/integration-checklist.md) for the complete contracts.
 

@@ -1,4 +1,5 @@
 import { UNIFI_API_BASE_URL } from "../constants";
+import { isUniFiReceiptId } from "../core/receipt";
 import { isUniFiSessionId } from "../core/session";
 
 export type UniFiServerEnv = {
@@ -67,12 +68,38 @@ function readStatusSessionId(pathname: string): string | null {
   }
 }
 
+function readReceiptId(pathname: string): string | null {
+  const prefix = "/payment/onchain/receipt/";
+  if (!pathname.startsWith(prefix)) return null;
+  try {
+    const value = decodeURIComponent(pathname.slice(prefix.length));
+    return !value.includes("/") && isUniFiReceiptId(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function readAllowedUpstreamPath(pathname: string): string | null {
+  const sessionId = readStatusSessionId(pathname);
+  if (sessionId) {
+    return `/payment/merchant/session/${encodeURIComponent(sessionId)}`;
+  }
+
+  const receiptId = readReceiptId(pathname);
+  if (receiptId) {
+    return `/payment/onchain/receipt/${encodeURIComponent(receiptId)}`;
+  }
+
+  return null;
+}
+
 /**
- * Securely proxies the one API route needed by the browser widget.
+ * Securely proxies the two API routes needed by the browser widget.
  *
  * The API key is read only from the server environment and is never returned
  * to the browser. The default allowlist accepts only:
  * GET /payment/merchant/session/:sessionId
+ * GET /payment/onchain/receipt/:receiptId
  */
 export async function handleUniFiProxyRequest(
   request: Request,
@@ -116,8 +143,8 @@ export async function handleUniFiProxyRequest(
   }
 
   const upstreamPath = requestUrl.pathname.slice(apiPrefix.length) || "/";
-  const sessionId = readStatusSessionId(upstreamPath);
-  if (!sessionId) {
+  const allowedUpstreamPath = readAllowedUpstreamPath(upstreamPath);
+  if (!allowedUpstreamPath) {
     return jsonResponse(
       { error: "This UniFi API route is not allowed." },
       404,
@@ -131,7 +158,7 @@ export async function handleUniFiProxyRequest(
       ? apiBaseUrl
       : `${apiBaseUrl}/`;
     upstreamUrl = new URL(
-      `payment/merchant/session/${encodeURIComponent(sessionId)}`,
+      allowedUpstreamPath.replace(/^\//, ""),
       upstreamBase,
     );
   } catch {

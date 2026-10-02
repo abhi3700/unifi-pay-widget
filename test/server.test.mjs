@@ -5,6 +5,8 @@ import { handleUniFiProxyRequest } from "../dist/server.js";
 
 const sessionId = "d".repeat(64);
 const requestUrl = `https://merchant.example/api/unifi/payment/merchant/session/${sessionId}`;
+const receiptId = `1r${"a".repeat(24)}`;
+const receiptRequestUrl = `https://merchant.example/api/unifi/payment/onchain/receipt/${receiptId}`;
 
 test("requires the server-side API key", async () => {
   const response = await handleUniFiProxyRequest(new Request(requestUrl), {
@@ -80,6 +82,14 @@ test("rejects methods and paths outside the allowlist", async () => {
     env,
   );
   assert.equal(malformed.status, 404);
+
+  const invalidReceipt = await handleUniFiProxyRequest(
+    new Request(
+      "https://merchant.example/api/unifi/payment/onchain/receipt/not-a-receipt",
+    ),
+    env,
+  );
+  assert.equal(invalidReceipt.status, 404);
 });
 
 test("rejects an invalid upstream base URL", async () => {
@@ -122,6 +132,32 @@ test("injects the key upstream without exposing it downstream", async () => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.has("set-cookie"), false);
   assert.equal((await response.text()).includes("server-secret"), false);
+});
+
+test("allows the receipt-status route", async () => {
+  let observedUrl = "";
+  const response = await handleUniFiProxyRequest(
+    new Request(receiptRequestUrl),
+    {
+      UNIFI_API_BASE_URL: "https://api.example/v1/",
+      UNIFI_API_KEY: "server-secret",
+    },
+    {
+      fetch: async (input) => {
+        observedUrl = input.toString();
+        return new Response(
+          JSON.stringify({ data: { id: receiptId, status: "Processing" } }),
+          { headers: { "content-type": "application/json" } },
+        );
+      },
+    },
+  );
+
+  assert.equal(
+    observedUrl,
+    `https://api.example/v1/payment/onchain/receipt/${receiptId}`,
+  );
+  assert.equal(response.status, 200);
 });
 
 test("allows same-origin CORS and omits unapproved origins", async () => {

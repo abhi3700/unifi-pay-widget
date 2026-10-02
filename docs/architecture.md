@@ -19,10 +19,16 @@ The server proxy uses the library's production UniFi API endpoint by default. A 
 4. The merchant page checks its same-origin proxy with the session ID.
 5. The proxy validates the request, adds the server-held bearer token, and requests the UniFi API.
 6. An empty `data` value remains pending; a non-empty value is the receipt ID.
-7. UniFi retains the session-to-receipt status mapping in Redis for two hours.
-8. The merchant durably stores the order, session ID, and confirmed receipt ID, then fulfills only after its trusted order flow accepts the receipt.
+7. The merchant immediately checks `/payment/onchain/receipt/:receiptId`, then refreshes
+   `Processing` or `Confirmed` no more than every 15 minutes unless the customer requests a manual
+   refresh.
+8. Only `Finalized` confirms settlement. `Failed` and `Reorged` are unsuccessful terminal states.
+9. UniFi retains the session-to-receipt status mapping in Redis for two hours.
+10. The merchant durably stores the order, session ID, receipt ID, and finality state, then fulfils
+    idempotently only after `Finalized`.
 
-The package intentionally does not proxy arbitrary upstream paths. Expanding the allowlist should be an explicit server-side change with tests.
+The package intentionally proxies only the session lookup and single-receipt status paths. Expanding
+the allowlist should be an explicit server-side change with tests.
 
 ## Session model
 

@@ -32,6 +32,19 @@ Builds the hosted receipt URL.
 
 `checkUniFiPaymentStatus` is the one-shot equivalent.
 
+### `client.checkReceiptStatus(receiptId)`
+
+Requests the allowlisted `/payment/onchain/receipt/:receiptId` route and resolves to one of:
+
+```ts
+{ state: "received", receipt: { id, status, ...details } }
+{ state: "failed", message: string }
+```
+
+Receipt status is `Processing`, `Confirmed`, `Finalized`, `Failed`, or `Reorged`.
+`checkUniFiReceiptStatus` is the one-shot equivalent. Treat the session-level `paid` state as
+receipt detection and confirm an order only when the receipt reaches `Finalized`.
+
 ## React: `unifi-pay-widget/react`
 
 ### `UniFiPayWidget`
@@ -59,7 +72,9 @@ Requires `receiptId`. Optional props are `checkoutBaseUrl`, `children`, and `cla
 
 ### `handleUniFiProxyRequest(request, env, options?): Promise<Response>`
 
-Reads the required `UNIFI_API_KEY` from `env`. The optional `UNIFI_API_BASE_URL` overrides the library's production API endpoint for local, staging, or self-hosted deployments. Options:
+Reads the required `UNIFI_API_KEY` from `env` and allowlists the session lookup plus single-receipt
+status routes. The optional `UNIFI_API_BASE_URL` overrides the library's production API endpoint
+for local, staging, or self-hosted deployments. Options:
 
 - `apiPrefix` defaults to `/api/unifi`;
 - `allowedOrigins` allows explicit cross-origin frontends;

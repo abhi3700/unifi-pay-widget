@@ -27,6 +27,36 @@ export type UniFiPaymentStatus =
   | { state: "paid"; receiptId: string }
   | { state: "failed"; message: string };
 
+export type UniFiReceiptStatus =
+  | "Processing"
+  | "Failed"
+  | "Confirmed"
+  | "Finalized"
+  | "Reorged";
+
+export type UniFiPaymentReceipt = {
+  id: string;
+  entity: string;
+  user_id: string;
+  is_fee_incl: boolean;
+  chain: string;
+  coin: string;
+  to_address: string;
+  amount: string;
+  memo: unknown;
+  est_fee: string;
+  act_fee: string;
+  tx_hash: string;
+  block_num: number;
+  status: UniFiReceiptStatus;
+  start_ts_us: number;
+  end_ts_us: number;
+};
+
+export type UniFiReceiptStatusResult =
+  | { state: "received"; receipt: UniFiPaymentReceipt }
+  | { state: "failed"; message: string };
+
 export type UniFiClientOptions = {
   proxyBaseUrl?: string;
   fetch?: typeof globalThis.fetch;
@@ -35,6 +65,14 @@ export type UniFiClientOptions = {
 export type UniFiApiStatusResponse = {
   status?: string;
   data?: string;
+  message?: string;
+  error?: string;
+  detail?: string;
+};
+
+export type UniFiApiReceiptResponse = {
+  status?: string;
+  data?: UniFiPaymentReceipt;
   message?: string;
   error?: string;
   detail?: string;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   UniFiClient,
+  checkUniFiReceiptStatus,
   createUniFiPayment,
   createUniFiReceiptUrl,
   createUniFiSessionId,
@@ -168,5 +169,60 @@ test("returns a useful failed state for API errors", async () => {
   assert.deepEqual(await client.checkPaymentStatus("c".repeat(64)), {
     state: "failed",
     message: "Invalid API key",
+  });
+});
+
+test("returns the latest receipt status and receipt details", async () => {
+  const receiptId = `1r${"a".repeat(24)}`;
+  const receipt = {
+    id: receiptId,
+    entity: "self",
+    user_id: "merchant@example.com",
+    is_fee_incl: false,
+    chain: "Sepolia",
+    coin: "USDT",
+    to_address: "0xmerchant",
+    amount: "12.30",
+    memo: "FliqPay",
+    est_fee: "0.01",
+    act_fee: "0.01",
+    tx_hash: "0xtx",
+    block_num: 123,
+    status: "Confirmed",
+    start_ts_us: 1,
+    end_ts_us: 2,
+  };
+
+  const result = await checkUniFiReceiptStatus(receiptId, {
+    fetch: async (input) => {
+      assert.equal(
+        input.toString(),
+        `/api/unifi/payment/onchain/receipt/${receiptId}`,
+      );
+      return new Response(JSON.stringify({ data: receipt }), {
+        headers: { "content-type": "application/json" },
+      });
+    },
+  });
+
+  assert.deepEqual(result, { state: "received", receipt });
+});
+
+test("rejects invalid receipt status responses", async () => {
+  const receiptId = `1r${"b".repeat(24)}`;
+  const client = new UniFiClient({
+    fetch: async () =>
+      new Response(
+        JSON.stringify({ data: { id: receiptId, status: "Unknown" } }),
+        { headers: { "content-type": "application/json" } },
+      ),
+  });
+
+  assert.deepEqual(await client.checkReceiptStatus(receiptId), {
+    state: "failed",
+    message: "UniFi returned an invalid receipt response.",
+  });
+  await assert.rejects(() => client.checkReceiptStatus("not-a-receipt"), {
+    code: "INVALID_RECEIPT_ID",
   });
 });

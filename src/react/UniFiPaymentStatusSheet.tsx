@@ -7,7 +7,7 @@ export type UniFiPaymentStatusSheetProps = {
   statusText: string;
   payUrl?: string | null;
   checking?: boolean;
-  onCheckStatus: () => void | Promise<void>;
+  onCheckStatus: () => void | Promise<unknown>;
   onClose: () => void;
 };
 

@@ -196,6 +196,7 @@ import { useState } from "react";
 import {
   UniFiPaymentOption,
   UniFiPaymentStatusSheet,
+  UniFiReceiptStatusCard,
 } from "unifi-pay-widget/react";
 import {
   checkUniFiPaymentStatus,
@@ -231,6 +232,27 @@ if (status.state === "paid") {
 ```
 
 `UniFiPaymentStatusSheet` displays the generated link and calls the host application's status handler. It manages its own loading state unless a `checking` prop is supplied.
+
+For a host-owned Pay button, `useUniFiPayment` supplies the same session creation, hosted-checkout
+countdown, status lookup, expiry, and reset lifecycle used by `UniFiPayWidget`. This keeps custom
+checkout layouts from duplicating protocol state.
+
+After the session lookup detects a receipt, mount the library-owned finality card and update the
+host order state from validated status changes:
+
+```tsx
+<UniFiReceiptStatusCard
+  receiptId={receiptId}
+  onStatusChange={(status) => {
+    if (status === "Finalized") confirmOrder();
+  }}
+/>
+```
+
+`useUniFiReceiptStatus` exposes the same immediate check, 15-minute automatic cadence, terminal-state
+handling, countdown, errors, and manual refresh action for integrations that need custom rendering.
+The standard card removes its refresh control after `Finalized`, `Failed`, or `Reorged`, preventing
+unnecessary terminal-state API requests.
 
 </details>
 
@@ -319,6 +341,16 @@ A controlled payment-method row and bottom-sheet pair picker. Use `selected` and
 ### `UniFiPaymentStatusSheet`
 
 A controlled bottom sheet. Supply `open`, `secondsLeft`, `statusText`, `payUrl`, `onCheckStatus`, and `onClose`.
+
+### `useUniFiPayment`
+
+The reusable payment-session controller behind `UniFiPayWidget`, for checkouts that own their Pay
+button and surrounding layout.
+
+### `UniFiReceiptStatusCard` and `useUniFiReceiptStatus`
+
+The card is the standard receipt-finality UI. The hook provides the same validated polling and
+countdown lifecycle for custom UIs.
 
 ### `UniFiReceiptLink`
 

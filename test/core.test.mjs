@@ -2,13 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   UniFiClient,
+  canRefreshUniFiReceiptStatus,
   checkUniFiReceiptStatus,
   createUniFiPayment,
   createUniFiReceiptUrl,
   createUniFiSessionId,
+  getUniFiReceiptStatusLabel,
   getUniFiPaymentRemainingSeconds,
+  isUniFiReceiptStatusTerminal,
   isUniFiSessionId,
   UNIFI_PAYMENT_EXPIRY_SECONDS,
+  UNIFI_RECEIPT_REFRESH_INTERVAL_MS,
 } from "../dist/index.js";
 
 test("creates unique 64-character hexadecimal session IDs", () => {
@@ -108,6 +112,22 @@ test("builds the canonical receipt URL", () => {
     createUniFiReceiptUrl("receipt/one", "https://checkout.example"),
     "https://checkout.example/app/payment/receipt/receipt%2Fone",
   );
+});
+
+test("exposes the shared receipt refresh policy and status semantics", () => {
+  assert.equal(UNIFI_RECEIPT_REFRESH_INTERVAL_MS, 15 * 60 * 1000);
+  assert.equal(isUniFiReceiptStatusTerminal("Processing"), false);
+  assert.equal(isUniFiReceiptStatusTerminal("Confirmed"), false);
+  assert.equal(isUniFiReceiptStatusTerminal("Finalized"), true);
+  assert.equal(isUniFiReceiptStatusTerminal("Failed"), true);
+  assert.equal(isUniFiReceiptStatusTerminal("Reorged"), true);
+  assert.equal(canRefreshUniFiReceiptStatus("Processing"), true);
+  assert.equal(canRefreshUniFiReceiptStatus("Confirmed"), true);
+  assert.equal(canRefreshUniFiReceiptStatus("Finalized"), false);
+  assert.equal(canRefreshUniFiReceiptStatus("Failed"), false);
+  assert.equal(canRefreshUniFiReceiptStatus("Reorged"), false);
+  assert.equal(getUniFiReceiptStatusLabel("Confirmed"), "Confirmed on-chain");
+  assert.equal(getUniFiReceiptStatusLabel(null), "Checking payment finality");
 });
 
 test("maps empty and populated API data to pending and paid", async () => {

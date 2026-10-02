@@ -18,8 +18,8 @@
 - Record the session ID against the order before fulfillment.
 - Handle session `pending`, receipt-detected `paid`, and request `failed` states explicitly.
 - Persist the detected receipt ID with the order; UniFi's session-to-receipt status mapping expires after two hours.
-- Check receipt status immediately, automatically every 15 minutes while `Processing` or
-  `Confirmed`, and immediately when the customer uses the manual refresh control.
+- Use `useUniFiReceiptStatus` or `UniFiReceiptStatusCard` to check immediately, automatically every
+  15 minutes while `Processing` or `Confirmed`, and when the customer requests a manual refresh.
 - Confirm and fulfil only after `Finalized`; keep `Failed` and `Reorged` unfulfilled.
 - Link the receipt for customer support and auditability.
 

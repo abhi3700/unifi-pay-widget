@@ -1,8 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { UNIFI_PAYMENT_EXPIRY_SECONDS } from "../constants";
-import { UniFiClient } from "../core/client";
-import { getUniFiPaymentRemainingSeconds } from "../core/session";
-import { createUniFiPayment } from "../core/urls";
 import type {
   UniFiPaymentSelection,
   UniFiPaymentSession,
@@ -10,6 +7,7 @@ import type {
 } from "../types";
 import { UniFiPaymentOption } from "./UniFiPaymentOption";
 import { UniFiPaymentStatusSheet } from "./UniFiPaymentStatusSheet";
+import { useUniFiPayment } from "./useUniFiPayment";
 
 export type UniFiPayWidgetProps = {
   amount: string | number;
@@ -55,36 +53,16 @@ export function UniFiPayWidget({
 }: UniFiPayWidgetProps) {
   const [internalSelection, setInternalSelection] = useState(defaultValue);
   const selection = value ?? internalSelection;
-  const [session, setSession] = useState<UniFiPaymentSession | null>(null);
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [statusText, setStatusText] = useState("Waiting for payment…");
-  const [checking, setChecking] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(expirySeconds);
-  const client = useMemo(() => new UniFiClient({ proxyBaseUrl }), [proxyBaseUrl]);
-
-  useEffect(() => {
-    if (!statusOpen || !session) return;
-
-    const syncRemaining = () => {
-      const next = getUniFiPaymentRemainingSeconds(
-        session.startTimestampSeconds,
-        Date.now(),
-        expirySeconds,
-      );
-      setSecondsLeft(next);
-      if (next === 0) {
-        setStatusText("Payment session expired.");
-      }
-      return next;
-    };
-
-    if (syncRemaining() === 0) return;
-
-    const timer = window.setInterval(() => {
-      if (syncRemaining() === 0) window.clearInterval(timer);
-    }, 250);
-    return () => window.clearInterval(timer);
-  }, [expirySeconds, session, statusOpen]);
+  const payment = useUniFiPayment({
+    proxyBaseUrl,
+    checkoutBaseUrl,
+    expirySeconds,
+    openInNewTab,
+    onSession,
+    onStatus,
+    onReceiptDetected: onPaid,
+    onError,
+  });
 
   function updateSelection(next: UniFiPaymentSelection) {
     if (value === undefined) setInternalSelection(next);
@@ -92,55 +70,11 @@ export function UniFiPayWidget({
   }
 
   function beginPayment() {
-    try {
-      const next = createUniFiPayment({
-        ...selection,
-        amount,
-        recipient,
-        checkoutBaseUrl,
-      });
-      setSession(next);
-      setSecondsLeft(
-        getUniFiPaymentRemainingSeconds(
-          next.startTimestampSeconds,
-          Date.now(),
-          expirySeconds,
-        ),
-      );
-      setStatusText("Waiting for payment…");
-      setStatusOpen(true);
-      onSession?.(next);
-      if (openInNewTab) window.open(next.payUrl, "_blank", "noopener,noreferrer");
-    } catch (error) {
-      onError?.(error instanceof Error ? error : new Error("Unable to start payment."));
-    }
-  }
-
-  async function checkStatus() {
-    if (!session || checking) return;
-    setChecking(true);
-    setStatusText("Checking payment status…");
-    try {
-      const status = await client.checkPaymentStatus(session.sessionId);
-      onStatus?.(status);
-      if (status.state === "paid") {
-        setStatusText("Payment confirmed.");
-        onPaid?.(status.receiptId, session);
-      } else if (status.state === "failed") {
-        setStatusText(status.message);
-      } else {
-        setStatusText("Payment is still pending.");
-      }
-    } catch (error) {
-      const normalized =
-        error instanceof Error
-          ? error
-          : new Error("Unable to check payment status.");
-      setStatusText(normalized.message);
-      onError?.(normalized);
-    } finally {
-      setChecking(false);
-    }
+    payment.startPayment({
+      ...selection,
+      amount,
+      recipient,
+    });
   }
 
   return (
@@ -159,13 +93,13 @@ export function UniFiPayWidget({
         {buttonLabel}
       </button>
       <UniFiPaymentStatusSheet
-        open={statusOpen}
-        secondsLeft={secondsLeft}
-        statusText={statusText}
-        payUrl={session?.payUrl}
-        checking={checking}
-        onCheckStatus={checkStatus}
-        onClose={() => setStatusOpen(false)}
+        open={payment.statusOpen}
+        secondsLeft={payment.secondsLeft}
+        statusText={payment.statusText}
+        payUrl={payment.session?.payUrl}
+        checking={payment.checking}
+        onCheckStatus={payment.checkStatus}
+        onClose={payment.closeStatus}
       />
     </div>
   );

@@ -7,7 +7,7 @@ The server proxy uses the library's production UniFi API endpoint by default. A 
 | Layer | Import | Responsibility | May read API key? |
 | --- | --- | --- | --- |
 | Core | `unifi-pay-widget` | Sessions, checkout URLs, receipts, status client, shared types | No |
-| React | `unifi-pay-widget/react` | Payment option, bottom sheets, complete widget | No |
+| React | `unifi-pay-widget/react` | Payment/session controllers, finality tracking, components | No |
 | Server | `unifi-pay-widget/server` | Validated, allowlisted UniFi API proxy | Yes |
 | Styles | `unifi-pay-widget/styles.css` | Namespaced responsive presentation | No |
 
@@ -21,7 +21,8 @@ The server proxy uses the library's production UniFi API endpoint by default. A 
 6. An empty `data` value remains pending; a non-empty value is the receipt ID.
 7. The merchant immediately checks `/payment/onchain/receipt/:receiptId`, then refreshes
    `Processing` or `Confirmed` no more than every 15 minutes unless the customer requests a manual
-   refresh.
+   refresh. `useUniFiReceiptStatus` and `UniFiReceiptStatusCard` implement this policy for React
+   integrations.
 8. Only `Finalized` confirms settlement. `Failed` and `Reorged` are unsuccessful terminal states.
 9. UniFi retains the session-to-receipt status mapping in Redis for two hours.
 10. The merchant durably stores the order, session ID, receipt ID, and finality state, then fulfils
@@ -29,6 +30,10 @@ The server proxy uses the library's production UniFi API endpoint by default. A 
 
 The package intentionally proxies only the session lookup and single-receipt status paths. Expanding
 the allowlist should be an explicit server-side change with tests.
+
+Host applications should keep order, cart, and fulfilment state in their own code. Session launch,
+hosted-checkout countdown, validated receipt polling, finality semantics, and the standard finality
+card belong to this package so integrations do not reimplement the protocol lifecycle.
 
 ## Session model
 

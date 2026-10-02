@@ -64,6 +64,27 @@ Optional props: `selected`, `onSelect`, `disabled`, `title`, `caption`, `radioNa
 
 Required props: `open`, `secondsLeft`, `statusText`, `onCheckStatus`, and `onClose`. `payUrl` is optional. `checking` is optional; when omitted, the component manages button loading while awaiting `onCheckStatus`.
 
+### `useUniFiPayment(options?)`
+
+Provides the reusable session lifecycle for host-owned checkout UI: `startPayment`, `checkStatus`,
+`closeStatus`, and `reset`, plus the session, countdown, status text, and loading state consumed by
+`UniFiPaymentStatusSheet`. Options control checkout/proxy URLs, expiry behavior, new-tab launch, and
+session/status/receipt/error callbacks.
+
+### `useUniFiReceiptStatus(options)`
+
+Requires `receiptId`. It performs the immediate receipt check, suppresses concurrent checks,
+automatically refreshes non-terminal states at the shared 15-minute cadence, and exposes receipt,
+status, loading, error, last-check, countdown, and manual `refresh` state. Optional callbacks report
+validated receipt changes and errors.
+
+### `UniFiReceiptStatusCard`
+
+Runs `useUniFiReceiptStatus` and renders the reusable finality status, refresh countdown, last-check
+time, errors, and manual refresh control. Automatic polling and the manual refresh control both stop
+for terminal `Finalized`, `Failed`, and `Reorged` states. `receiptId` is required; proxy, refresh,
+callback, and copy options match the hook.
+
 ### `UniFiReceiptLink`
 
 Requires `receiptId`. Optional props are `checkoutBaseUrl`, `children`, and `className`.
@@ -90,8 +111,12 @@ Adapts the handler to the Cloudflare Pages Function `{ request, env }` shape.
 - `UNIFI_API_BASE_URL`: `https://api.payunifi.com`
 - `UNIFI_PROXY_BASE_URL`: `/api/unifi`
 - `UNIFI_PAYMENT_EXPIRY_SECONDS`: `900`
+- `UNIFI_RECEIPT_REFRESH_INTERVAL_MS`: `900000`
 - `getUniFiPaymentRemainingSeconds(startTimestampSeconds, nowTimestampMilliseconds?, expirySeconds?)`:
   derives the countdown from the timestamp embedded in the payment session URL. A custom expiry
   may shorten the hosted 15-minute lifetime but cannot extend it.
 - `UNIFI_ASSETS`: supported asset names
 - `UNIFI_NETWORKS`: supported network names
+- `isUniFiReceiptStatusTerminal(status)`: identifies `Finalized`, `Failed`, and `Reorged`
+- `canRefreshUniFiReceiptStatus(status)`: permits refresh only for non-terminal receipt states
+- `getUniFiReceiptStatusLabel(status)`: returns the shared user-facing finality label

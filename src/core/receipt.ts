@@ -31,3 +31,34 @@ export function isUniFiReceiptStatus(
 ): value is UniFiReceiptStatus {
   return RECEIPT_STATUSES.includes(value as UniFiReceiptStatus);
 }
+
+export function isUniFiReceiptStatusTerminal(
+  status: UniFiReceiptStatus | null | undefined,
+): boolean {
+  return status === "Finalized" || status === "Failed" || status === "Reorged";
+}
+
+export function canRefreshUniFiReceiptStatus(
+  status: UniFiReceiptStatus | null | undefined,
+): boolean {
+  return !isUniFiReceiptStatusTerminal(status);
+}
+
+export function getUniFiReceiptStatusLabel(
+  status: UniFiReceiptStatus | null | undefined,
+): string {
+  switch (status) {
+    case "Processing":
+      return "Payment submitted";
+    case "Confirmed":
+      return "Confirmed on-chain";
+    case "Finalized":
+      return "Finalized on-chain";
+    case "Failed":
+      return "Payment failed";
+    case "Reorged":
+      return "Payment reorged";
+    default:
+      return "Checking payment finality";
+  }
+}

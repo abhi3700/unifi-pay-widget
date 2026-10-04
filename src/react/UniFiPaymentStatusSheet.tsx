@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { refreshIcon, unifiIcon } from "./assets";
+import { refreshIcon, unifiIcon, xLgIcon } from "./assets";
 
 export type UniFiPaymentStatusSheetProps = {
   open: boolean;
@@ -146,11 +146,11 @@ export function UniFiPaymentStatusSheet({
             <button
               ref={closeRef}
               type="button"
-              className="unifi-widget__close"
+              className="unifi-widget__close-icon unifi-widget__status-close"
               aria-label="Close payment status"
               onClick={onClose}
             >
-              <span aria-hidden="true">×</span> Close
+              <img src={xLgIcon} alt="" />
             </button>
           </div>
           <div className="unifi-widget__status-title-row">

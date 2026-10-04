@@ -48,6 +48,11 @@ test("keeps the payment-status sheet manual when polling is not configured", () 
   );
 
   assert.match(html, />Check payment status</);
+  assert.match(
+    html,
+    /class="unifi-widget__close-icon unifi-widget__status-close"/,
+  );
+  assert.doesNotMatch(html, /<span aria-hidden="true">×<\/span> Close/);
   assert.doesNotMatch(html, /Next check in/);
   assert.doesNotMatch(html, /unifi-widget__status-auto-refresh/);
 });

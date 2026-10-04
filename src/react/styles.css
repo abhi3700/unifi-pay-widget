@@ -619,20 +619,23 @@
   font-weight: 650;
 }
 
-.unifi-widget__close {
-  display: inline-flex;
-  min-height: 2.25rem;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--unifi-border);
-  border-radius: 999px;
-  background: white;
-  color: var(--unifi-primary);
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 800;
+.unifi-widget__close-icon.unifi-widget__status-close {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-color: #c4b5fd;
   box-shadow: 0 1px 3px rgb(50 25 103 / 0.12);
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.unifi-widget__close-icon.unifi-widget__status-close:hover {
+  border-color: #a78bfa;
+  background: #f5f3ff;
+  box-shadow: 0 3px 10px rgb(91 33 182 / 0.16);
+}
+
+.unifi-widget__close-icon.unifi-widget__status-close img {
+  width: 1rem;
+  height: 1rem;
 }
 
 .unifi-widget__status-title-row {

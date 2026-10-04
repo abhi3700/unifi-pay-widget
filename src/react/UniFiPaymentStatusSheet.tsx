@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { refreshIcon, unifiIcon } from "./assets";
 
 export type UniFiPaymentStatusSheetProps = {
@@ -63,6 +63,17 @@ export function UniFiPaymentStatusSheet({
     typeof statusPollIntervalMs === "number" &&
     Number.isFinite(statusPollIntervalMs) &&
     statusPollIntervalMs > 0;
+  const refreshRingGradientId = useId().replace(/:/g, "");
+  const refreshRingRadius = 19;
+  const refreshRingCircumference = 2 * Math.PI * refreshRingRadius;
+  const pollIntervalSeconds = Math.max(
+    1,
+    Math.ceil((statusPollIntervalMs ?? 1000) / 1000),
+  );
+  const refreshProgress = automaticChecksEnabled
+    ? Math.min(1, Math.max(0, autoCheckSecondsLeft / pollIntervalSeconds))
+    : 0;
+  const refreshRingOffset = refreshRingCircumference * (1 - refreshProgress);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const onCloseRef = useRef(onClose);
 
@@ -163,12 +174,55 @@ export function UniFiPaymentStatusSheet({
               aria-label="Check payment status now"
               title="Check payment status now"
             >
+              <span
+                className="unifi-widget__status-auto-refresh-surface"
+                aria-hidden="true"
+              />
               <img
                 src={refreshIcon}
                 className={isChecking ? "is-checking" : ""}
                 alt=""
                 aria-hidden="true"
               />
+              <svg
+                className="unifi-widget__status-auto-refresh-ring"
+                viewBox="0 0 44 44"
+                aria-hidden="true"
+              >
+                <defs>
+                  <linearGradient
+                    id={refreshRingGradientId}
+                    x1="0"
+                    y1="0"
+                    x2="44"
+                    y2="44"
+                    gradientUnits="userSpaceOnUse"
+                  >
+                    <stop stopColor="#2563eb" />
+                    <stop offset="1" stopColor="#6d28d9" />
+                  </linearGradient>
+                </defs>
+                <circle
+                  cx="22"
+                  cy="22"
+                  r={refreshRingRadius}
+                  fill="none"
+                  stroke="#c7d2fe"
+                  strokeWidth="3"
+                />
+                <circle
+                  cx="22"
+                  cy="22"
+                  r={refreshRingRadius}
+                  fill="none"
+                  stroke={`url(#${refreshRingGradientId})`}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={refreshRingCircumference}
+                  strokeDashoffset={refreshRingOffset}
+                  className="unifi-widget__status-auto-refresh-progress"
+                />
+              </svg>
             </button>
           ) : (
             <span className="unifi-widget__status-icon" aria-hidden="true">⌛</span>

@@ -68,9 +68,39 @@ test("renders compact automatic payment-status controls when polling is configur
   );
 
   assert.match(html, /unifi-widget__status-auto-refresh/);
+  assert.match(html, /unifi-widget__status-auto-refresh-progress/);
+  assert.match(html, /stroke-dashoffset=/);
   assert.match(html, /Status checks run automatically every 30 seconds/);
   assert.match(html, /Next check in 0:24/);
   assert.match(html, /Last checked at/);
   assert.match(html, /aria-label="Check payment status now"/);
   assert.doesNotMatch(html, />Check payment status</);
+});
+
+test("reduces the automatic payment-status ring with the countdown", () => {
+  function renderAt(secondsLeft) {
+    return renderToStaticMarkup(
+      createElement(UniFiPaymentStatusSheet, {
+        open: true,
+        secondsLeft: 897,
+        statusText: "Waiting for payment…",
+        statusPollIntervalMs: 30_000,
+        autoCheckSecondsLeft: secondsLeft,
+        autoCheckActive: true,
+        onCheckStatus() {},
+        onClose() {},
+      }),
+    );
+  }
+
+  function readOffset(html) {
+    const match = html.match(/stroke-dashoffset="([^"]+)"/);
+    assert.ok(match, "expected the progress ring to expose a dash offset");
+    return Number(match[1]);
+  }
+
+  const offsetAt24Seconds = readOffset(renderAt(24));
+  const offsetAt12Seconds = readOffset(renderAt(12));
+
+  assert.ok(offsetAt12Seconds > offsetAt24Seconds);
 });

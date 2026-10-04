@@ -16,6 +16,7 @@ export type UseUniFiPaymentOptions = {
   checkoutBaseUrl?: string;
   fetch?: typeof globalThis.fetch;
   expirySeconds?: number;
+  statusPollIntervalMs?: number | null;
   openInNewTab?: boolean;
   closeOnReceipt?: boolean;
   closeOnExpire?: boolean;
@@ -35,6 +36,9 @@ export type UniFiPaymentController = {
   statusText: string;
   checking: boolean;
   secondsLeft: number;
+  lastCheckedAt: Date | null;
+  autoCheckSecondsLeft: number;
+  autoCheckActive: boolean;
   startPayment: (
     input: CreateUniFiPaymentInput,
   ) => UniFiPaymentSession | null;
@@ -51,6 +55,7 @@ export function useUniFiPayment(
     checkoutBaseUrl,
     fetch,
     expirySeconds = UNIFI_PAYMENT_EXPIRY_SECONDS,
+    statusPollIntervalMs,
     openInNewTab = true,
     closeOnReceipt = false,
     closeOnExpire = false,
@@ -64,6 +69,15 @@ export function useUniFiPayment(
   const [statusText, setStatusText] = useState(WAITING_STATUS_TEXT);
   const [checking, setChecking] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(expirySeconds);
+  const [lastCheckedAt, setLastCheckedAt] = useState<Date | null>(null);
+  const [nextAutoCheckAt, setNextAutoCheckAt] = useState<number | null>(null);
+  const [autoCheckSecondsLeft, setAutoCheckSecondsLeft] = useState(0);
+  const normalizedStatusPollIntervalMs =
+    typeof statusPollIntervalMs === "number" &&
+    Number.isFinite(statusPollIntervalMs) &&
+    statusPollIntervalMs > 0
+      ? Math.max(1, Math.floor(statusPollIntervalMs))
+      : null;
   const client = useMemo(
     () => new UniFiClient({ proxyBaseUrl, fetch }),
     [fetch, proxyBaseUrl],
@@ -114,6 +128,7 @@ export function useUniFiPayment(
           ),
         );
         setStatusText(WAITING_STATUS_TEXT);
+        setLastCheckedAt(null);
         setStatusOpen(true);
         callbacksRef.current.onSession?.(next);
         if (openInNewTab) {
@@ -166,11 +181,59 @@ export function useUniFiPayment(
       return { state: "failed", message: normalized.message };
     } finally {
       if (requestSequence === requestSequenceRef.current) {
+        setLastCheckedAt(new Date());
         checkingRef.current = false;
         setChecking(false);
       }
     }
   }, [client, closeOnReceipt, session]);
+
+  const autoCheckActive =
+    statusOpen &&
+    session !== null &&
+    secondsLeft > 0 &&
+    normalizedStatusPollIntervalMs !== null;
+  const lastCheckedAtMs = lastCheckedAt?.getTime() ?? null;
+
+  useEffect(() => {
+    if (!autoCheckActive || normalizedStatusPollIntervalMs === null) {
+      setNextAutoCheckAt(null);
+      return;
+    }
+
+    setNextAutoCheckAt(
+      (lastCheckedAtMs ?? Date.now()) + normalizedStatusPollIntervalMs,
+    );
+  }, [
+    autoCheckActive,
+    lastCheckedAtMs,
+    normalizedStatusPollIntervalMs,
+    session?.sessionId,
+  ]);
+
+  useEffect(() => {
+    if (!autoCheckActive || nextAutoCheckAt === null) return;
+    const delay = Math.max(0, nextAutoCheckAt - Date.now());
+    const timeout = window.setTimeout(() => void checkStatus(), delay);
+    return () => window.clearTimeout(timeout);
+  }, [autoCheckActive, checkStatus, nextAutoCheckAt]);
+
+  useEffect(() => {
+    if (!autoCheckActive || nextAutoCheckAt === null) {
+      setAutoCheckSecondsLeft(0);
+      return;
+    }
+
+    const syncCountdown = () => {
+      setAutoCheckSecondsLeft(
+        Math.max(0, Math.ceil((nextAutoCheckAt - Date.now()) / 1000)),
+      );
+    };
+
+    syncCountdown();
+    const countdown = window.setInterval(syncCountdown, 1000);
+    return () => window.clearInterval(countdown);
+  }, [autoCheckActive, nextAutoCheckAt]);
 
   const closeStatus = useCallback(() => setStatusOpen(false), []);
 
@@ -182,6 +245,9 @@ export function useUniFiPayment(
     setStatusOpen(false);
     setStatusText(WAITING_STATUS_TEXT);
     setSecondsLeft(expirySeconds);
+    setLastCheckedAt(null);
+    setNextAutoCheckAt(null);
+    setAutoCheckSecondsLeft(0);
   }, [expirySeconds]);
 
   return {
@@ -190,6 +256,9 @@ export function useUniFiPayment(
     statusText,
     checking,
     secondsLeft,
+    lastCheckedAt,
+    autoCheckSecondsLeft,
+    autoCheckActive,
     startPayment,
     checkStatus,
     closeStatus,

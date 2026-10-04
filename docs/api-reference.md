@@ -49,7 +49,9 @@ receipt detection and confirm an order only when the receipt reaches `Finalized`
 
 ### `UniFiPayWidget`
 
-Combines pair selection, session creation, checkout launch, countdown, and manual status checking. It is uncontrolled by default and supports controlled selection through `value` and `onChange`.
+Combines pair selection, session creation, checkout launch, countdown, and status checking. It is
+uncontrolled by default and supports controlled selection through `value` and `onChange`.
+`statusPollIntervalMs` opts into automatic session-status checks; omit it for manual checks only.
 
 ### `UniFiPaymentOption`
 
@@ -62,7 +64,10 @@ Optional props: `selected`, `onSelect`, `disabled`, `title`, `caption`, `radioNa
 
 ### `UniFiPaymentStatusSheet`
 
-Required props: `open`, `secondsLeft`, `statusText`, `onCheckStatus`, and `onClose`. `payUrl` is optional. `checking` is optional; when omitted, the component manages button loading while awaiting `onCheckStatus`.
+Required props: `open`, `secondsLeft`, `statusText`, `onCheckStatus`, and `onClose`. `payUrl` is
+optional. `checking` is optional; when omitted, the component manages loading while awaiting
+`onCheckStatus`. Supply `statusPollIntervalMs`, `autoCheckSecondsLeft`, `autoCheckActive`, and
+`lastCheckedAt` from `useUniFiPayment` to render the automatic-check treatment.
 
 ### `useUniFiPayment(options?)`
 
@@ -70,6 +75,9 @@ Provides the reusable session lifecycle for host-owned checkout UI: `startPaymen
 `closeStatus`, and `reset`, plus the session, countdown, status text, and loading state consumed by
 `UniFiPaymentStatusSheet`. Options control checkout/proxy URLs, expiry behavior, new-tab launch, and
 session/status/receipt/error callbacks.
+
+Set `statusPollIntervalMs` to a positive interval to enable automatic checks. The controller then
+also exposes `autoCheckActive`, `autoCheckSecondsLeft`, and `lastCheckedAt` for status-sheet UI.
 
 ### `useUniFiReceiptStatus(options)`
 

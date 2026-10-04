@@ -682,6 +682,12 @@
   padding: 0.875rem;
 }
 
+.unifi-widget__status-card.is-auto {
+  border-color: #bfdbfe;
+  background: #f4f8ff;
+  color: #172554;
+}
+
 .unifi-widget__status-icon {
   display: grid;
   width: 2.25rem;
@@ -691,6 +697,48 @@
   border-radius: 999px;
   background: #ede9fe;
   color: #6d28d9;
+}
+
+.unifi-widget__status-auto-refresh {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 3px solid #4f46e5;
+  border-radius: 999px;
+  background: white;
+  color: #4338ca;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgb(79 70 229 / 0.14);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.unifi-widget__status-auto-refresh:hover:not(:disabled) {
+  border-color: #2563eb;
+  box-shadow: 0 3px 12px rgb(37 99 235 / 0.22);
+  transform: translateY(-1px);
+}
+
+.unifi-widget__status-auto-refresh:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.unifi-widget__status-auto-refresh img {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.unifi-widget__status-auto-refresh img.is-checking {
+  animation: unifi-widget-spin 1s linear infinite;
+}
+
+.unifi-widget__status-card-copy {
+  min-width: 0;
+  flex: 1;
 }
 
 .unifi-widget__status-card strong {
@@ -703,6 +751,33 @@
   color: var(--unifi-muted);
   font-size: 0.75rem;
   line-height: 1.45;
+}
+
+.unifi-widget__status-card.is-auto p {
+  color: #1e40af;
+}
+
+.unifi-widget__status-auto-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  margin-top: 0.5rem;
+  font-size: 0.625rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.unifi-widget__status-next-check {
+  padding: 0.1875rem 0.5rem;
+  border-radius: 999px;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-weight: 850;
+}
+
+.unifi-widget__status-last-check {
+  color: #475569;
+  font-weight: 650;
 }
 
 .unifi-widget__link-card { padding: 0.75rem; }
@@ -913,6 +988,7 @@
 
 .unifi-widget__sheet-layer :where(button, a):focus-visible,
 .unifi-widget :where(button, input):focus-visible,
+.unifi-widget__status-auto-refresh:focus-visible,
 .unifi-widget__receipt-status-card button:focus-visible {
   outline: 3px solid rgb(124 58 237 / 0.35);
   outline-offset: 2px;

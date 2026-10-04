@@ -17,6 +17,8 @@
 - Pass the order amount and recipient to the widget or core helper.
 - Record the session ID against the order before fulfillment.
 - Handle session `pending`, receipt-detected `paid`, and request `failed` states explicitly.
+- Leave `statusPollIntervalMs` unset for manual session checks, or set a deliberate positive cadence
+  when the merchant wants automatic payment detection.
 - Persist the detected receipt ID with the order; UniFi's session-to-receipt status mapping expires after two hours.
 - Use `useUniFiReceiptStatus` or `UniFiReceiptStatusCard` to check immediately, automatically every
   15 minutes while `Processing` or `Confirmed`, and when the customer requests a manual refresh.

@@ -33,6 +33,7 @@ export function Checkout({ merchantWalletAddress }: {
     <UniFiPayWidget
       amount="32.46"
       recipient={merchantWalletAddress}
+      statusPollIntervalMs={30_000}
       onPaid={(receiptId) => {
         console.log("UniFi receipt detected", receiptId);
       }}
@@ -47,6 +48,9 @@ export function Receipt({ receiptId }: { receiptId: string }) {
 ```
 
 By default, status requests go through `/api/unifi/payment/merchant/session/:sessionId` and hosted checkout links use `https://payunifi.com`.
+Payment-status checks remain manual unless `statusPollIntervalMs` is a positive number. When set,
+the waiting sheet checks on that cadence and keeps its compact refresh control available for an
+immediate check.
 
 ## Production requirements
 
@@ -231,7 +235,10 @@ if (status.state === "paid") {
 }
 ```
 
-`UniFiPaymentStatusSheet` displays the generated link and calls the host application's status handler. It manages its own loading state unless a `checking` prop is supplied.
+`UniFiPaymentStatusSheet` displays the generated link and calls the host application's status
+handler. It manages its own loading state unless a `checking` prop is supplied. Pass the polling
+state from `useUniFiPayment` to show its compact automatic-check countdown; omit it to retain the
+manual button-only design.
 
 For a host-owned Pay button, `useUniFiPayment` supplies the same session creation, hosted-checkout
 countdown, status lookup, expiry, and reset lifecycle used by `UniFiPayWidget`. This keeps custom
@@ -294,7 +301,8 @@ if (result.state === "paid") {
 1. The merchant provides amount, recipient, asset, and network.
 2. `createUniFiPayment` generates a cryptographically random 64-character hexadecimal session ID and hosted checkout URL.
 3. The browser opens the UniFi checkout directly.
-4. The merchant page checks `/api/unifi` with the session ID.
+4. The merchant page checks `/api/unifi` with the session ID manually, or on the explicit
+   `statusPollIntervalMs` cadence.
 5. The proxy validates the request, adds the server-held API key, and requests the UniFi API.
 6. An empty response remains pending; a non-empty value is the receipt ID.
 7. The merchant immediately checks the receipt, then refreshes non-terminal receipt states no more
@@ -330,6 +338,7 @@ Required props are `amount` and `recipient`. Useful optional props include:
 
 - `value`, `defaultValue`, and `onChange` for controlled or uncontrolled selection;
 - `proxyBaseUrl` and `checkoutBaseUrl` for non-default deployments;
+- `statusPollIntervalMs` to opt into automatic session-status checks; omit it for manual checks only;
 - `onSession`, `onStatus`, `onPaid`, and `onError` lifecycle callbacks;
 - `expirySeconds` to shorten (but never extend) the hosted session lifetime, plus `disabled`,
   `buttonLabel`, and `openInNewTab`.

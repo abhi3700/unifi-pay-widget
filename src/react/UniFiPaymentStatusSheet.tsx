@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { unifiIcon } from "./assets";
+import { refreshIcon, unifiIcon } from "./assets";
 
 export type UniFiPaymentStatusSheetProps = {
   open: boolean;
@@ -7,6 +7,10 @@ export type UniFiPaymentStatusSheetProps = {
   statusText: string;
   payUrl?: string | null;
   checking?: boolean;
+  statusPollIntervalMs?: number | null;
+  autoCheckSecondsLeft?: number;
+  autoCheckActive?: boolean;
+  lastCheckedAt?: Date | null;
   onCheckStatus: () => void | Promise<unknown>;
   onClose: () => void;
 };
@@ -28,18 +32,37 @@ function previewUrl(value: string): string {
   }
 }
 
+function formatCadence(intervalMs: number): string {
+  const seconds = Math.max(1, Math.round(intervalMs / 1000));
+  if (seconds < 60) return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+  const minutes = seconds / 60;
+  if (Number.isInteger(minutes)) {
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  }
+  return `${seconds} seconds`;
+}
+
 export function UniFiPaymentStatusSheet({
   open,
   secondsLeft,
   statusText,
   payUrl,
   checking,
+  statusPollIntervalMs,
+  autoCheckSecondsLeft = 0,
+  autoCheckActive = false,
+  lastCheckedAt,
   onCheckStatus,
   onClose,
 }: UniFiPaymentStatusSheetProps) {
   const [copied, setCopied] = useState(false);
   const [internalChecking, setInternalChecking] = useState(false);
   const isChecking = checking ?? internalChecking;
+  const automaticChecksEnabled =
+    autoCheckActive &&
+    typeof statusPollIntervalMs === "number" &&
+    Number.isFinite(statusPollIntervalMs) &&
+    statusPollIntervalMs > 0;
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const onCloseRef = useRef(onClose);
 
@@ -128,11 +151,54 @@ export function UniFiPaymentStatusSheet({
           </div>
         </div>
 
-        <div className="unifi-widget__status-card">
-          <span className="unifi-widget__status-icon" aria-hidden="true">⌛</span>
-          <div>
-            <strong>{statusText}</strong>
-            <p>Keep the UniFi payment tab open, then return here to check the status.</p>
+        <div
+          className={`unifi-widget__status-card ${automaticChecksEnabled ? "is-auto" : ""}`.trim()}
+        >
+          {automaticChecksEnabled ? (
+            <button
+              type="button"
+              className="unifi-widget__status-auto-refresh"
+              disabled={isChecking}
+              onClick={() => void checkStatus()}
+              aria-label="Check payment status now"
+              title="Check payment status now"
+            >
+              <img
+                src={refreshIcon}
+                className={isChecking ? "is-checking" : ""}
+                alt=""
+                aria-hidden="true"
+              />
+            </button>
+          ) : (
+            <span className="unifi-widget__status-icon" aria-hidden="true">⌛</span>
+          )}
+          <div className="unifi-widget__status-card-copy">
+            <strong role="status" aria-live="polite">{statusText}</strong>
+            {automaticChecksEnabled ? (
+              <>
+                <p>
+                  Status checks run automatically every {formatCadence(statusPollIntervalMs)}.
+                  Use refresh for an immediate check.
+                </p>
+                <div className="unifi-widget__status-auto-meta">
+                  <span className="unifi-widget__status-next-check">
+                    Next check in {formatTime(autoCheckSecondsLeft)}
+                  </span>
+                  {lastCheckedAt ? (
+                    <span className="unifi-widget__status-last-check">
+                      Last checked at{" "}
+                      {lastCheckedAt.toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <p>Keep the UniFi payment tab open, then return here to check the status.</p>
+            )}
           </div>
         </div>
 
@@ -154,14 +220,16 @@ export function UniFiPaymentStatusSheet({
           </div>
         ) : null}
 
-        <button
-          type="button"
-          className="unifi-widget__primary"
-          disabled={isChecking}
-          onClick={() => void checkStatus()}
-        >
-          {isChecking ? "Checking…" : "Check payment status"}
-        </button>
+        {!automaticChecksEnabled ? (
+          <button
+            type="button"
+            className="unifi-widget__primary"
+            disabled={isChecking}
+            onClick={() => void checkStatus()}
+          >
+            {isChecking ? "Checking…" : "Check payment status"}
+          </button>
+        ) : null}
       </section>
     </div>
   );

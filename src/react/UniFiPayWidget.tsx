@@ -24,6 +24,7 @@ export type UniFiPayWidgetProps = {
   disabled?: boolean;
   openInNewTab?: boolean;
   expirySeconds?: number;
+  statusPollIntervalMs?: number | null;
   buttonLabel?: string;
   className?: string;
 };
@@ -48,6 +49,7 @@ export function UniFiPayWidget({
   disabled = false,
   openInNewTab = true,
   expirySeconds = UNIFI_PAYMENT_EXPIRY_SECONDS,
+  statusPollIntervalMs,
   buttonLabel = "Pay with UniFi",
   className = "",
 }: UniFiPayWidgetProps) {
@@ -57,6 +59,7 @@ export function UniFiPayWidget({
     proxyBaseUrl,
     checkoutBaseUrl,
     expirySeconds,
+    statusPollIntervalMs,
     openInNewTab,
     onSession,
     onStatus,
@@ -98,6 +101,10 @@ export function UniFiPayWidget({
         statusText={payment.statusText}
         payUrl={payment.session?.payUrl}
         checking={payment.checking}
+        statusPollIntervalMs={statusPollIntervalMs}
+        autoCheckSecondsLeft={payment.autoCheckSecondsLeft}
+        autoCheckActive={payment.autoCheckActive}
+        lastCheckedAt={payment.lastCheckedAt}
         onCheckStatus={payment.checkStatus}
         onClose={payment.closeStatus}
       />

@@ -9,7 +9,7 @@
 - put it in browser storage or a payment URL;
 - commit it to Git or include it in screenshots and logs.
 
-Use the server proxy exported by `unifi-pay-widget/server`. It accepts only `GET /payment/merchant/session/:sessionId`, validates the 64-character hexadecimal session ID, strips upstream cookies, and sends `Cache-Control: no-store`.
+Use the server proxy exported by `unifi-pay-widget/server`. It accepts only `GET /payment/merchant/session/:sessionId` below its configured same-origin prefix, validates the 64-character hexadecimal session ID, forwards to the versioned UniFi API route, strips upstream cookies, and sends `Cache-Control: no-store`.
 
 ## Merchant responsibilities
 

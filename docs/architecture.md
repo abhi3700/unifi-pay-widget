@@ -19,7 +19,7 @@ The server proxy uses the library's production UniFi API endpoint by default. A 
 4. The merchant page checks its same-origin proxy with the session ID.
 5. The proxy validates the request, adds the server-held bearer token, and requests the UniFi API.
 6. An empty `data` value remains pending; a non-empty value is the receipt ID.
-7. The merchant immediately checks `/payment/onchain/receipt/:receiptId`, then refreshes
+7. The merchant immediately checks the proxy's `/payment/onchain/receipt/:receiptId` path, then refreshes
    `Processing` or `Confirmed` no more than every 15 minutes unless the customer requests a manual
    refresh. `useUniFiReceiptStatus` and `UniFiReceiptStatusCard` implement this policy for React
    integrations.

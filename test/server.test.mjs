@@ -34,7 +34,7 @@ test("uses the library API base URL when no override is provided", async () => {
   assert.equal(response.status, 200);
   assert.equal(
     observedUrl,
-    `${UNIFI_API_BASE_URL}/payment/merchant/session/${sessionId}`,
+    `${UNIFI_API_BASE_URL}/v1/payment/merchant/session/${sessionId}`,
   );
 });
 

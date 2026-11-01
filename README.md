@@ -71,10 +71,10 @@ flowchart TD
     Browser["Merchant checkout"] -->|"Create session and open payment URL"| Checkout["UniFi hosted checkout"]
     Browser -->|"1. Look up session"| Proxy["Merchant server proxy"]
     Secret[("UNIFI_API_KEY<br/>server secret")] -.->|"Added server-side"| Proxy
-    Proxy -->|"GET /payment/merchant/session/:sessionId"| UniFi["UniFi API"]
+    Proxy -->|"GET /v1/payment/merchant/session/:sessionId"| UniFi["UniFi API"]
     UniFi -->|"Receipt ID detected"| Browser
     Browser -->|"2. Check now, then every 15 min or manually"| Proxy
-    Proxy -->|"GET /payment/onchain/receipt/:receiptId"| UniFi
+    Proxy -->|"GET /v1/payment/onchain/receipt/:receiptId"| UniFi
     UniFi -->|"Processing · Confirmed · Finalized<br/>or Failed · Reorged"| Browser
     Browser -->|"Finalized only"| Order["Confirm order"]
 

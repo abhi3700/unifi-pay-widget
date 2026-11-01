@@ -34,7 +34,7 @@ Builds the hosted receipt URL.
 
 ### `client.checkReceiptStatus(receiptId)`
 
-Requests the allowlisted `/payment/onchain/receipt/:receiptId` route and resolves to one of:
+Requests the allowlisted `/payment/onchain/receipt/:receiptId` route below the configured same-origin proxy prefix and resolves to one of:
 
 ```ts
 { state: "received", receipt: { id, status, ...details } }

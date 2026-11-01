@@ -82,12 +82,12 @@ function readReceiptId(pathname: string): string | null {
 function readAllowedUpstreamPath(pathname: string): string | null {
   const sessionId = readStatusSessionId(pathname);
   if (sessionId) {
-    return `/payment/merchant/session/${encodeURIComponent(sessionId)}`;
+    return `/v1/payment/merchant/session/${encodeURIComponent(sessionId)}`;
   }
 
   const receiptId = readReceiptId(pathname);
   if (receiptId) {
-    return `/payment/onchain/receipt/${encodeURIComponent(receiptId)}`;
+    return `/v1/payment/onchain/receipt/${encodeURIComponent(receiptId)}`;
   }
 
   return null;
@@ -157,10 +157,14 @@ export async function handleUniFiProxyRequest(
     const upstreamBase = apiBaseUrl.endsWith("/")
       ? apiBaseUrl
       : `${apiBaseUrl}/`;
-    upstreamUrl = new URL(
-      allowedUpstreamPath.replace(/^\//, ""),
-      upstreamBase,
-    );
+    const baseUrl = new URL(upstreamBase);
+    const baseAlreadyIncludesV1 = baseUrl.pathname
+      .replace(/\/+$/, "")
+      .endsWith("/v1");
+    const relativeUpstreamPath = baseAlreadyIncludesV1
+      ? allowedUpstreamPath.replace(/^\/v1\//, "")
+      : allowedUpstreamPath.replace(/^\//, "");
+    upstreamUrl = new URL(relativeUpstreamPath, baseUrl);
   } catch {
     return jsonResponse(
       { error: "UNIFI_API_BASE_URL is not a valid absolute URL." },
